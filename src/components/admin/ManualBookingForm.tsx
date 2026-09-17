@@ -682,7 +682,7 @@ export default function ManualBookingForm({
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(img, 0, 0, width, height);
-        const dateText = `Madras Flavours • Uploaded: ${new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}`;
+        const dateText = `Sangeetha Events • Uploaded: ${new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}`;
         ctx.font = 'bold 14px sans-serif';
         const textWidth = ctx.measureText(dateText).width;
         ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
@@ -905,7 +905,7 @@ export default function ManualBookingForm({
   // Helper WhatsApp Quote
   const generateWhatsAppQuoteText = () => {
     const firstName = customerDetails.name.split(' ')[0] || 'Customer';
-    let text = `Hi ${firstName}, here is your event quote from *Madras Flavours Events*:\n\n`;
+    let text = `Hi ${firstName}, here is your event quote from *Sangeetha Events Pinner*:\n\n`;
     text += `📅 *Date:* ${customerDetails.date} (${customerDetails.timeSession})\n`;
     text += `👥 *Guests:* ${customerDetails.adults} Adults · ${customerDetails.kids4to10} Kids · ${customerDetails.kidsUnder4} Infants (Total ${totalGuests})\n`;
     text += `🍱 *Package:* ${currentPackage?.name} at £${effectivePackagePrice}/adult · £${effectiveKidsPrice}/kid\n\n`;
@@ -958,7 +958,7 @@ export default function ManualBookingForm({
                 {isEditMode ? 'Edit Direct Booking' : 'Direct Booking & Event Planner'}
               </h2>
               <p className="text-xs text-red-100 mt-0.5">
-                Madras Flavours Luxury Event Management • Dynamic Pricing, Logistics & Add-ons
+                Sangeetha Events Luxury Event Management • Dynamic Pricing, Logistics & Add-ons
               </p>
             </div>
           </div>
@@ -1070,7 +1070,7 @@ export default function ManualBookingForm({
                 <div>
                   <h3 className="text-sm font-extrabold text-gray-900 uppercase tracking-wide flex items-center gap-2">
                     <Icon name="SparklesIcon" size={18} className="text-[#ED1C24]" />
-                    Select Madras Flavours Package
+                    Select Sangeetha Events Package
                   </h3>
                   <p className="text-xs text-gray-500 mt-0.5">
                     Adult and Kids rates automatically adapt based on your selected package.

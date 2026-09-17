@@ -8,11 +8,11 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Madras Flavours Events — Outdoor Catering Management',
-  description: 'Madras Flavours Events helps you plan and manage unforgettable outdoor catering services with ease.',
+  title: 'Sangeetha Events Pinner — Luxury South Indian Pure Vegetarian Catering',
+  description: 'Sangeetha Events Pinner offers premier authentic South Indian pure vegetarian catering, bespoke live dosa stations, and grand banquet packages across Pinner, Harrow, London & Berkshire.',
   icons: {
     icon: [
-      { url: '/assets/images/logomf.png', type: 'image/png' }
+      { url: '/assets/images/sangeetha-logo.png', type: 'image/png' }
     ],
   },
 };
@@ -23,11 +23,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning>{children}
-
-        <script type="module" async src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Fquoteflow1339back.builtwithrocket.new&_be=https%3A%2F%2Fappanalytics.rocket.new&_v=0.1.18" />
-        <script type="module" defer src="https://static.rocket.new/rocket-shot.js?v=0.0.2" /></body>
+    <html lang="en" suppressHydrationWarning className="dark">
+      <body suppressHydrationWarning className="bg-[#070F0A] text-gray-100 min-h-screen">
+        {children}
+      </body>
     </html>
   );
 }

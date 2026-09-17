@@ -6,6 +6,7 @@ import { NEW_PACKAGES, MENU_CATEGORIES, LIVE_DOSA_PARTY_MENU, EXTRAS, TABLE_SERV
 import AccessControl from '@/components/admin/AccessControl';
 import MenusTabUI from '@/components/admin/MenusTabUI';
 import ManualBookingForm from '@/components/admin/ManualBookingForm';
+import WebsiteContentUI from '@/components/admin/WebsiteContentUI';
 
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, db, storage } from '@/lib/firebase';
@@ -325,7 +326,7 @@ function buildWhatsAppLink(phone: string, message: string) {
   return `https://wa.me/${cleaned}?text=${encodeURIComponent(message)}`;
 }
 
-type AdminTab = 'overview' | 'enquiries' | 'bookings' | 'calendar' | 'customers' | 'payments' | 'menus' | 'history' | 'settings' | 'access' | 'discount_approvals' | 'tracker' | 'manual_booking';
+type AdminTab = 'overview' | 'enquiries' | 'bookings' | 'calendar' | 'customers' | 'payments' | 'menus' | 'history' | 'settings' | 'access' | 'discount_approvals' | 'tracker' | 'manual_booking' | 'content';
 
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 
@@ -441,6 +442,8 @@ export default function AdminPage() {
         } as Booking;
       });
       setBookings(liveBookings);
+    }, (err) => {
+      console.warn("Admin bookings listener notice:", err.message);
     });
     return () => unsubscribe();
   }, []);
@@ -451,6 +454,7 @@ export default function AdminPage() {
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [loginError, setLoginError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   const [userPermissions, setUserPermissions] = useState<string[] | 'all'>('all');
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role: string } | null>(null);
@@ -542,12 +546,12 @@ export default function AdminPage() {
     const unsubscribe = onSnapshot(collection(db, 'blocked_dates'), (snapshot) => {
       const dates = snapshot.docs.map(doc => doc.id);
       setBlockedDates(dates.sort());
-    });
+    }, (err) => console.warn('Admin blocked_dates notice:', err.message));
     return () => unsubscribe();
   }, []);
 
   const [bankDetails, setBankDetails] = useState({
-    accountName: 'Madras Flavours Events Ltd',
+    accountName: 'Sangeetha Events Ltd',
     sortCode: '20-00-00',
     accountNumber: '12345678'
   });
@@ -557,18 +561,18 @@ export default function AdminPage() {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setBankDetails({
-          accountName: data.accountName || 'Madras Flavours Events Ltd',
+          accountName: data.accountName || 'Sangeetha Events Ltd',
           sortCode: data.sortCode || '20-00-00',
           accountNumber: data.accountNumber || '12345678'
         });
       }
-    });
+    }, (err) => console.warn('Admin bank_details notice:', err.message));
   }, []);
 
   const [venueDetails, setVenueDetails] = useState({
-    venueName: 'Madras Flavours Events',
+    venueName: 'Sangeetha Events Pinner',
     minGuests: '30',
-    contactEmail: 'hello@madrasflavoursevents.com',
+    contactEmail: 'catering@sangeethaevents.co.uk',
     phone: '+44 7700 900000',
     whatsapp: '+447700900000',
     address: '123 Event Plaza, London, UK'
@@ -579,15 +583,15 @@ export default function AdminPage() {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setVenueDetails({
-          venueName: data.venueName || 'Madras Flavours Events',
+          venueName: data.venueName || 'Sangeetha Events Pinner',
           minGuests: data.minGuests || '30',
-          contactEmail: data.contactEmail || 'hello@madrasflavoursevents.com',
+          contactEmail: data.contactEmail || 'catering@sangeethaevents.co.uk',
           phone: data.phone || '+44 7700 900000',
           whatsapp: data.whatsapp || '+447700900000',
           address: data.address || '123 Event Plaza, London, UK'
         });
       }
-    });
+    }, (err) => console.warn('Admin venue_details notice:', err.message));
   }, []);
 
   const openImagePreview = (url?: string, title = 'Payment Verification Proof') => {
@@ -687,7 +691,7 @@ export default function AdminPage() {
           weekendRate: data.weekendRate || 550
         });
       }
-    });
+    }, (err) => console.warn('Admin pricing_details notice:', err.message));
   }, []);
 
   const [formSettings, setFormSettings] = useState({
@@ -701,7 +705,7 @@ export default function AdminPage() {
 
   const [notificationSettings, setNotificationSettings] = useState({
     enabled: true,
-    emails: 'rahulbadugu22@gmail.com, catering@madrasflavours.co.uk, Digitalbotsolutions@gmail.com'
+    emails: 'rahulbadugu22@gmail.com, catering@sangeethaevents.co.uk, Digitalbotsolutions@gmail.com'
   });
   const [isSavingNotificationSettings, setIsSavingNotificationSettings] = useState(false);
 
@@ -715,7 +719,7 @@ export default function AdminPage() {
           outdoorTimeSlots: data.outdoorTimeSlots || data.timeSlots || ['Lunch (12:00pm - 4:00pm)', 'Dinner (6:00pm - 11:30pm)']
         });
       }
-    });
+    }, (err) => console.warn('Admin form_settings notice:', err.message));
   }, []);
 
   useEffect(() => {
@@ -724,17 +728,17 @@ export default function AdminPage() {
         const data = docSnap.data();
         setNotificationSettings({
           enabled: data.enabled !== undefined ? data.enabled : true,
-          emails: data.emails || 'rahulbadugu22@gmail.com, catering@madrasflavours.co.uk, Digitalbotsolutions@gmail.com'
+          emails: data.emails || 'rahulbadugu22@gmail.com, catering@sangeethaevents.co.uk, Digitalbotsolutions@gmail.com'
         });
       }
-    });
+    }, (err) => console.warn('Admin notification_settings notice:', err.message));
   }, []);
 
   // ─── REAL MENU EDITABLE STATE ─────────────────────────────────────────────
   type AdminMenuTab = 'banquet' | 'indian' | 'srilankan' | 'live';
   const [adminMenuTab, setAdminMenuTab] = useState<AdminMenuTab>('banquet');
 
-  // Editable Madras Flavours Menu States
+  // Editable Sangeetha Events Menu States
   const [editableNewPackages, setEditableNewPackages] = useState<any[]>(NEW_PACKAGES.map(pkg => ({ ...pkg })));
   const [editableMenuCategories, setEditableMenuCategories] = useState<any>(JSON.parse(JSON.stringify(MENU_CATEGORIES)));
   const [editableLiveDosaPartyMenu, setEditableLiveDosaPartyMenu] = useState<any>(JSON.parse(JSON.stringify(LIVE_DOSA_PARTY_MENU)));
@@ -768,7 +772,7 @@ export default function AdminPage() {
         if (data.KIDS_PRICING) setEditableKidsPricing(data.KIDS_PRICING);
         if (data.DRY_HIRE_PRICES) setEditableDryHirePrices(data.DRY_HIRE_PRICES);
       }
-    });
+    }, (err) => console.warn('Admin menus notice:', err.message));
   }, []);
 
   const [isSavingMenus, setIsSavingMenus] = useState(false);
@@ -797,7 +801,7 @@ export default function AdminPage() {
   };
 
   const buildMenuWhatsAppText = (customerName: string, customerPhone: string, menuType: string, guestCount: number) => {
-    let text = `Hi ${customerName}, here are our *${menuType}* options from Madras Flavours Events:\n\n`;
+    let text = `Hi ${customerName}, here are our *${menuType}* options from Sangeetha Events Pinner:\n\n`;
     if (menuType === 'Packages') {
       text += editableNewPackages.map((p: any) => `• *${p.name}:* £${p.pricePerPerson}\n${(p.items || []).join(', ')}`).join('\n\n') + '\n\n';
     } else if (menuType === 'Menu Categories' || menuType === 'Menu Items') {
@@ -825,7 +829,7 @@ export default function AdminPage() {
   };
 
   const buildStep1EnquiryWhatsAppText = (booking: Booking) => {
-    let text = `Hi ${booking.name.split(' ')[0]}, thank you for your enquiry with Madras Flavours Events for your *${booking.eventType}* on *${booking.date || 'TBD'}*!\n\n`;
+    let text = `Hi ${booking.name.split(' ')[0]}, thank you for your enquiry with Sangeetha Events Pinner for your *${booking.eventType}* on *${booking.date || 'TBD'}*!\n\n`;
     text += `Here are our packages & pricing details:\n\n`;
 
     // 1. Packages
@@ -886,7 +890,7 @@ export default function AdminPage() {
 
     const packageText = `*Menu Selection:*\n• Package: *${booking.selectedMenu || booking.package}*\n${menuItemsText}`;
 
-    return buildWhatsAppLink(booking.phone, `Hi ${booking.name.split(' ')[0]},\n\nThank you for choosing Madras Flavours Events! Here is a summary of your confirmed selections:\n\n*Event Details:*\n• Date: ${booking.date}\n• Event Type: ${booking.eventType}\n\n${packageText}\n*Guests:*\n${guestBreakdown}\n• Total Guests: ${adults + kids4to10 + kidsUnder4}\n${extrasText}\n\n*Pricing Details:*\n• Base Amount: £${booking.baseAmount.toLocaleString()}${discountText}${vatText}\n• Grand Total: *£${grandTotal.toLocaleString()}*\n• Deposit Required: *£${booking.deposit.toLocaleString()}*\n\n${WHATSAPP_TERMS_TEXT}\n\nPlease let us know if this summary is correct. Once you confirm, we will send our bank details for the deposit payment! 🙏`);
+    return buildWhatsAppLink(booking.phone, `Hi ${booking.name.split(' ')[0]},\n\nThank you for choosing Sangeetha Events Pinner! Here is a summary of your confirmed selections:\n\n*Event Details:*\n• Date: ${booking.date}\n• Event Type: ${booking.eventType}\n\n${packageText}\n*Guests:*\n${guestBreakdown}\n• Total Guests: ${adults + kids4to10 + kidsUnder4}\n${extrasText}\n\n*Pricing Details:*\n• Base Amount: £${booking.baseAmount.toLocaleString()}${discountText}${vatText}\n• Grand Total: *£${grandTotal.toLocaleString()}*\n• Deposit Required: *£${booking.deposit.toLocaleString()}*\n\n${WHATSAPP_TERMS_TEXT}\n\nPlease let us know if this summary is correct. Once you confirm, we will send our bank details for the deposit payment! 🙏`);
   };
 
   const buildStep5DepositConfirmedWhatsAppText = (booking: Booking) => {
@@ -898,7 +902,7 @@ export default function AdminPage() {
     const discountText = booking.discount ? `\n• Discount (${booking.discount.reason}): -£${getDiscountAmount(booking).toLocaleString()}` : '';
     const vatText = booking.vatRate === 20 ? `\n• VAT (20%): +£${(getFoodPackageTotal(booking) * 0.2).toLocaleString()}` : '';
 
-    return buildWhatsAppLink(booking.phone, `Hi ${booking.name.split(' ')[0]},\n\nWe have received and verified your deposit of *£${booking.deposit.toLocaleString()}*! Your booking for the *${booking.eventType}* on *${booking.date}* is officially confirmed!\n\n*Payments Summary:*${discountText}${vatText}\n• Grand Total: £${grandTotal.toLocaleString()}\n• Deposit Paid: £${booking.deposit.toLocaleString()}\n• Remaining Balance: *£${(grandTotal - booking.deposit).toLocaleString()}*\n${booking.dueDate ? `• Balance Due Date: ${booking.dueDate}` : ''}\n\nWe will contact you shortly before the due date to finalize the food selections and details. Thank you for choosing Madras Flavours Events! 🙏✨`);
+    return buildWhatsAppLink(booking.phone, `Hi ${booking.name.split(' ')[0]},\n\nWe have received and verified your deposit of *£${booking.deposit.toLocaleString()}*! Your booking for the *${booking.eventType}* on *${booking.date}* is officially confirmed!\n\n*Payments Summary:*${discountText}${vatText}\n• Grand Total: £${grandTotal.toLocaleString()}\n• Deposit Paid: £${booking.deposit.toLocaleString()}\n• Remaining Balance: *£${(grandTotal - booking.deposit).toLocaleString()}*\n${booking.dueDate ? `• Balance Due Date: ${booking.dueDate}` : ''}\n\nWe will contact you shortly before the due date to finalize the food selections and details. Thank you for choosing Sangeetha Events Pinner! 🙏✨`);
   };
 
   const buildStep7FinalPaymentReceivedWhatsAppText = (booking: Booking) => {
@@ -940,7 +944,7 @@ export default function AdminPage() {
 
     return `Hi ${booking.name.split(' ')[0]},
 
-Thank you so much for booking with Madras Flavours Events! Your event was a success and your booking is now fully completed.
+Thank you so much for booking with Sangeetha Events Pinner! Your event was a success and your booking is now fully completed.
 
 *Event Summary:*
 • Event: ${booking.eventType}
@@ -1011,7 +1015,7 @@ It was an absolute pleasure serving you. We hope you and your guests had a wonde
       `• Total Paid: £${totalPaid.toLocaleString()}\n` +
       `• *Remaining Balance Due: ${remainingBalance <= 0 ? 'PAID IN FULL ✓' : `£${remainingBalance.toLocaleString()}`}*`;
 
-    return `Hi ${booking.name.split(' ')[0]}, thank you for choosing Madras Flavours Events for your ${booking.eventType}! 🎉\n\nHere is your final invoice summary:\n\n*Booking Ref:* ${generateDisplayId(booking)}\n*Package:* ${booking.selectedMenu || booking.package}\n\n${guestBreakdown}\n\n*Base Amount:* £${booking.baseAmount.toLocaleString()}${extrasText}${discountText}${vatText}${grandTotalText}\n\n${breakdownText}${dueDateText}\n\nPlease transfer the balance to:\nAccount Name: ${bank.accountName}\nSort Code: ${bank.sortCode}\nAccount No: ${bank.accountNumber}\nReference: ${generateDisplayId(booking)}\n\nOnce paid, please send a screenshot of the transfer confirmation here. Thank you!`;
+    return `Hi ${booking.name.split(' ')[0]}, thank you for choosing Sangeetha Events Pinner for your ${booking.eventType}! 🎉\n\nHere is your final invoice summary:\n\n*Booking Ref:* ${generateDisplayId(booking)}\n*Package:* ${booking.selectedMenu || booking.package}\n\n${guestBreakdown}\n\n*Base Amount:* £${booking.baseAmount.toLocaleString()}${extrasText}${discountText}${vatText}${grandTotalText}\n\n${breakdownText}${dueDateText}\n\nPlease transfer the balance to:\nAccount Name: ${bank.accountName}\nSort Code: ${bank.sortCode}\nAccount No: ${bank.accountNumber}\nReference: ${generateDisplayId(booking)}\n\nOnce paid, please send a screenshot of the transfer confirmation here. Thank you!`;
   };
 
   const buildExtraInvoiceWhatsAppText = (booking: Booking, bank: typeof bankDetails) => {
@@ -1021,7 +1025,7 @@ It was an absolute pleasure serving you. We hope you and your guests had a wonde
 
     return `Hi ${booking.name.split(' ')[0]},
 
-Thank you for celebrating with us at Madras Flavours Events! 🎉 We hope you had a fantastic time.
+Thank you for celebrating with us at Sangeetha Events Pinner! 🎉 We hope you had a fantastic time.
 
 There were some additional adjustments/services added during your event:
 ${extrasList}
@@ -1788,7 +1792,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
     const formattedEnquiryDate = booking.enquiryDate ? new Date(booking.enquiryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A';
 
     // Construct logo source
-    const logoUrl = window.location.origin + '/assets/images/logomf.png';
+    const logoUrl = window.location.origin + '/assets/images/sangeetha-logo.png';
 
     // Build menu items HTML
     let invoiceMenuItemsHTML = '';
@@ -2018,7 +2022,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
             <p>Booking Reference: <strong>#${generateDisplayId(booking)}</strong></p>
             <p>Enquiry Date: ${formattedEnquiryDate}</p>
           </div>
-          <img class="logo" src="${logoUrl}" alt="Madras Flavours Events Logo" />
+          <img class="logo" src="${logoUrl}" alt="Sangeetha Events Pinner Logo" />
         </div>
 
         <div class="grid-2">
@@ -2116,7 +2120,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
     const formattedEnquiryDate = booking.enquiryDate ? new Date(booking.enquiryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A';
 
     // Construct logo source (ensure it points to the absolute path of the domain)
-    const logoUrl = window.location.origin + '/assets/images/logomf.png';
+    const logoUrl = window.location.origin + '/assets/images/sangeetha-logo.png';
 
     // Build menu items HTML
     let invoiceMenuItemsHTML = '';
@@ -2395,7 +2399,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
             <p>Booking Reference: <strong>#${generateDisplayId(booking)}</strong></p>
             <p>Enquiry Date: ${formattedEnquiryDate}</p>
           </div>
-          <img class="logo" src="${logoUrl}" alt="Madras Flavours Events Logo" />
+          <img class="logo" src="${logoUrl}" alt="Sangeetha Events Pinner Logo" />
         </div>
 
         <div class="grid-2">
@@ -2574,7 +2578,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
         ${screenshotsHTML}
 
         <div class="footer-note">
-          Thank you for choosing Madras Flavours Events. If you have any questions regarding this invoice, please contact us.
+          Thank you for choosing Sangeetha Events Pinner. If you have any questions regarding this invoice, please contact us.
         </div>
 
         <script>
@@ -2696,6 +2700,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
     { id: 'history', label: 'History', icon: 'ArchiveBoxIcon', requiredPerm: 'manage_history' },
     { id: 'discount_approvals', label: 'Discount Approvals', icon: 'TagIcon', badge: pendingDiscounts.length || undefined, requiredPerm: 'manage_discounts' },
     { id: 'settings', label: 'Settings', icon: 'Cog6ToothIcon', requiredPerm: 'manage_settings' },
+    { id: 'content', label: 'Website Content', icon: 'DocumentTextIcon', requiredPerm: 'manage_settings' },
     { id: 'access', label: 'Access Control', icon: 'ShieldCheckIcon', requiredPerm: 'manage_access' },
     { id: 'tracker', label: 'Booking Tracker', icon: 'MapIcon', requiredPerm: 'manage_tracker' },
   ];
@@ -2709,8 +2714,14 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
   // ─── AUTHENTICATION LOADING ────────────────────────────────────────────────
   if (loadingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1A0F00 0%, #2C1A00 50%, #3D2800 100%)' }}>
-        <div className="animate-spin rounded-full h-8 w-8 border-4 border-[#ED1C24] border-t-transparent" />
+      <div className="min-h-screen font-dashboard flex flex-col items-center justify-center gap-4" style={{ background: 'radial-gradient(ellipse at top, #1A1208 0%, #0B0704 100%)' }}>
+        <div className="relative">
+          <div className="animate-spin rounded-full h-12 w-12 border-3 border-amber-400/20 border-t-amber-400" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="w-3 h-3 rounded-full bg-amber-400 animate-pulse"></span>
+          </div>
+        </div>
+        <div className="text-xs font-semibold uppercase tracking-widest text-amber-200/80">Loading Admin Portal...</div>
       </div>
     );
   }
@@ -2718,107 +2729,183 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
   // ─── LOGIN ────────────────────────────────────────────────────────────────
   if (!loggedIn) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'linear-gradient(135deg, #1A0F00 0%, #2C1A00 50%, #3D2800 100%)' }}>
+      <div className="min-h-screen font-dashboard flex items-center justify-center px-6 relative overflow-hidden" style={{ background: 'radial-gradient(ellipse at top, #0A1E14 0%, #050B07 100%)' }}>
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-20 w-64 h-64 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, #F5A623, transparent)' }} />
-          <div className="absolute bottom-20 right-20 w-80 h-80 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, #ED1C24, transparent)' }} />
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-emerald-500/15 blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-red-600/10 blur-3xl" />
         </div>
-        <div className="relative bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm">
-          <div className="flex flex-col items-center mb-6">
-            <img
-              src="/assets/images/logomf.png"
-              alt="Madras Flavours Events logo"
-              style={{ maxHeight: '90px', width: 'auto', objectFit: 'contain' }}
-              className="mb-1"
-            />
-            <p className="text-sm text-gray-400 mt-1">Admin Portal</p>
+        <div className="relative glass-card-gold rounded-3xl shadow-2xl p-8 sm:p-10 w-full max-w-md border border-emerald-500/30 backdrop-blur-2xl">
+          <div className="flex flex-col items-center mb-7">
+            <div className="bg-white rounded-2xl px-5 py-3 mb-4 shadow-lg flex items-center justify-center w-full max-w-[220px]">
+              <img
+                src="/assets/images/sangeetha-logo.png"
+                alt="Sangeetha Veg Restaurant"
+                style={{ maxHeight: '56px', width: 'auto', objectFit: 'contain' }}
+              />
+            </div>
+            <div className="text-center">
+              <h2 className="text-lg font-bold text-white tracking-tight">Admin Portal</h2>
+            </div>
           </div>
-          <div className="border-t border-gray-100 mb-6" />
+
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Email Address</label>
-              <input type="email" required value={loginForm.email} onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none bg-gray-50" placeholder="rahulbadugu22@gmail.com" />
+              <label className="block text-xs font-semibold text-emerald-200/90 uppercase tracking-wider mb-1.5">Email Address</label>
+              <input
+                type="email"
+                required
+                value={loginForm.email}
+                onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+                className="w-full bg-white/5 border border-white/15 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
+                placeholder="rahulbadugu22@gmail.com"
+              />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Password</label>
+              <label className="block text-xs font-semibold text-emerald-200/90 uppercase tracking-wider mb-1.5">Password</label>
               <div className="relative">
-                <input type={showPassword ? "text" : "password"} required value={loginForm.password} onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })} className="w-full border border-gray-200 rounded-xl pl-4 pr-10 py-2.5 text-sm focus:outline-none bg-gray-50" placeholder="••••••••" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={loginForm.password}
+                  onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                  className="w-full bg-white/5 border border-white/15 rounded-xl pl-4 pr-10 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
+                  placeholder="????????"
+                />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-amber-400 focus:outline-none"
                 >
-                  <Icon name={showPassword ? 'EyeSlashIcon' : 'EyeIcon'} size={20} />
+                  <Icon name={showPassword ? 'EyeSlashIcon' : 'EyeIcon'} size={18} />
                 </button>
               </div>
             </div>
-            {loginError && <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-red-600 text-xs">{loginError}</div>}
-            <button type="submit" disabled={isLoggingIn} className="w-full text-white font-semibold py-2.5 rounded-xl transition-all text-sm shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed" style={{ background: 'linear-gradient(135deg, #ED1C24, #F5A623)' }}>
-              {isLoggingIn ? 'Signing In...' : 'Sign In to Dashboard'}
+
+            {loginError && (
+              <div className="bg-red-950/60 border border-red-500/40 rounded-xl px-3.5 py-2.5 text-red-200 text-xs flex items-center gap-2">
+                <Icon name="ExclamationTriangleIcon" size={16} />
+                <span>{loginError}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoggingIn}
+              className="w-full text-white font-bold py-3 rounded-xl transition-all text-sm shadow-xl hover:shadow-amber-500/25 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+              style={{ background: 'linear-gradient(135deg, #C62127 0%, #D82D34 45%, #06874D 100%)' }}
+            >
+              {isLoggingIn ? (
+                <span className="flex items-center gap-2">
+                  <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                  Authenticating...
+                </span>
+              ) : (
+                <>
+                  <span>Sign In to Dashboard</span>
+                  <Icon name="ArrowRightIcon" size={15} />
+                </>
+              )}
             </button>
-            <div className="text-center mt-4 text-xs text-gray-500 bg-gray-50 py-2 rounded-lg border border-gray-100">
-              Please log in with your dashboard credentials.
-            </div>
           </form>
+
+          <div className="text-center mt-6 pt-5 border-t border-white/10 text-xs text-gray-400 flex items-center justify-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span>Secure Role-Based Staff Access</span>
+          </div>
         </div>
       </div>
     );
   }
 
-  // ─── DASHBOARD ────────────────────────────────────────────────────────────
+  // ??? DASHBOARD ????????????????????????????????????????????????????????????
   return (
-    <div className="h-screen bg-gray-50 flex overflow-hidden">
+    <div className="h-screen font-dashboard bg-[#F8FAFC] flex overflow-hidden selection:bg-amber-500/20 selection:text-amber-900 relative">
+      {/* Sign Out Confirmation Modal (Centered in screen) */}
+      {showSignOutConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 max-w-md w-full p-6 sm:p-8 text-center space-y-5 animate-in zoom-in-95 duration-200 relative">
+            <div className="w-16 h-16 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center mx-auto text-red-600 shadow-sm">
+              <Icon name="ArrowRightOnRectangleIcon" size={30} />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-gray-900 tracking-tight">
+                Confirm Sign Out
+              </h3>
+              <p className="text-sm text-gray-500 leading-relaxed max-w-xs mx-auto">
+                Are you sure you want to sign out of the Admin Portal?
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowSignOutConfirm(false)}
+                className="flex-1 py-3 px-4 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setShowSignOutConfirm(false);
+                  try {
+                    await signOut(auth);
+                    setActiveTab('overview');
+                    if (typeof window !== 'undefined') {
+                      localStorage.removeItem('adminActiveTab');
+                      localStorage.removeItem('adminBypass');
+                    }
+                    setLoggedIn(false);
+                  } catch (error) {
+                    console.error("Error signing out:", error);
+                  }
+                }}
+                className="flex-1 py-3 px-4 rounded-xl text-white text-sm font-semibold shadow-lg hover:shadow-red-500/25 hover:scale-[1.01] active:scale-[0.99] transition-all"
+                style={{ background: 'linear-gradient(135deg, #C62127 0%, #D82D34 50%, #06874D 100%)' }}
+              >
+                Yes, Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />}
 
       {/* Sidebar */}
-      <aside className={`fixed md:static inset-y-0 left-0 z-50 w-60 flex-shrink-0 flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`} style={{ background: 'linear-gradient(180deg, #1A0F00 0%, #2C1A00 100%)' }}>
-        <div className="px-5 py-4 border-b flex items-center gap-2.5" style={{ borderColor: '#3D2800' }}>
-          <div>
-            <img
-              src="/assets/images/logomf.png"
-              alt="Madras Flavours Events logo"
-              style={{ maxHeight: '60px', width: 'auto', objectFit: 'contain' }}
-            />
-            <div className="text-xs mt-1" style={{ color: '#A08060' }}>Admin Dashboard</div>
-          </div>
+      <aside className={`fixed md:static inset-y-0 left-0 z-50 w-64 flex-shrink-0 flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`} style={{ background: 'linear-gradient(180deg, #050B07 0%, #0A160F 50%, #08120C 100%)', borderRight: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <div className="px-5 py-4 bg-white border-b border-gray-200 flex items-center justify-center">
+          <img
+            src="/assets/images/sangeetha-logo.png"
+            alt="Sangeetha Veg Restaurant"
+            style={{ maxHeight: '46px', width: 'auto', objectFit: 'contain' }}
+          />
         </div>
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {visibleNavItems.map((item) => (
             <button key={item.id} onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === item.id ? 'text-white shadow-md' : 'hover:text-white'}`}
-              style={activeTab === item.id ? { background: 'linear-gradient(135deg, #ED1C24, #F5A623)', color: 'white' } : { color: '#A08060' }}>
+              style={activeTab === item.id ? { background: 'linear-gradient(135deg, #C62127 0%, #B71C1C 40%, #06874D 100%)', color: 'white' } : { color: '#8FAFA0' }}>
               <Icon name={item.icon as 'CalendarDaysIcon'} size={17} />
               <span className="flex-1 text-left">{item.label}</span>
               {item.badge ? <span className="bg-amber-400 text-amber-900 text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">{item.badge}</span> : null}
             </button>
           ))}
         </nav>
-        <div className="px-3 py-4 border-t" style={{ borderColor: '#3D2800' }}>
+        <div className="px-3 py-4 border-t" style={{ borderColor: '#142E20' }}>
           <div className="flex items-center gap-2 px-3 py-2 mb-1">
             <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'rgba(237, 28, 36,0.2)' }}>
-              <Icon name="UserCircleIcon" size={16} style={{ color: '#F5A623' }} />
+              <Icon name="UserCircleIcon" size={16} style={{ color: '#06874D' }} />
             </div>
             <div>
-              <div className="text-xs font-semibold" style={{ color: '#F5A623' }}>{currentUser?.role || 'Super Admin'}</div>
-              <div className="text-xs" style={{ color: '#A08060' }}>{currentUser?.email || ''}</div>
+              <div className="text-xs font-semibold" style={{ color: '#06874D' }}>{currentUser?.role || 'Super Admin'}</div>
+              <div className="text-xs" style={{ color: '#8FAFA0' }}>{currentUser?.email || ''}</div>
             </div>
           </div>
           <button
-            onClick={async () => {
-              try {
-                await signOut(auth);
-                setActiveTab('overview');
-                if (typeof window !== 'undefined') {
-                  localStorage.removeItem('adminActiveTab');
-                  localStorage.removeItem('adminBypass');
-                }
-                setLoggedIn(false);
-              } catch (error) {
-                console.error("Error signing out:", error);
-              }
-            }}
+            onClick={() => setShowSignOutConfirm(true)}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors hover:text-white"
-            style={{ color: '#A08060' }}
+            style={{ color: '#8FAFA0' }}
           >
             <Icon name="ArrowRightOnRectangleIcon" size={17} />
             Sign Out
@@ -2846,6 +2933,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                 {activeTab === 'menus' && 'Manage catering packages'}
                 {activeTab === 'history' && `${completedBookings.length} completed bookings`}
                 {activeTab === 'settings' && 'Venue configuration'}
+                {activeTab === 'content' && 'Edit hero section, tags & FAQs'}
                 {activeTab === 'access' && 'Manage roles and permissions'}
                 {activeTab === 'discount_approvals' && 'Review discount requests'}
                 {activeTab === 'tracker' && 'Track booking progress step-by-step'}
@@ -3136,7 +3224,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                   {['all', ...STATUS_FLOW.filter(s => s !== 'new_enquiry' && s !== 'completed')].map((s) => (
                     <button key={s} onClick={() => setFilterStatus(s)}
                       className={`px-2.5 py-1 rounded-lg text-xs font-medium capitalize transition-colors ${filterStatus === s ? 'text-white' : 'text-gray-500 hover:bg-gray-100'}`}
-                      style={filterStatus === s ? { background: 'linear-gradient(135deg, #ED1C24, #F5A623)' } : {}}>
+                      style={filterStatus === s ? { background: 'linear-gradient(135deg, #C62127 0%, #B71C1C 40%, #06874D 100%)' } : {}}>
                       {s === 'all' ? 'All' : STATUS_LABELS[s as BookingStatus]}
                     </button>
                   ))}
@@ -3202,7 +3290,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                             </span>
                           </td>
                           <td className="px-4 py-3.5">
-                            <a href={buildWhatsAppLink(booking.phone, `Hi ${booking.name.split(' ')[0]}, this is Madras Flavours Events regarding your ${booking.eventType} booking on ${booking.date}.`)}
+                            <a href={buildWhatsAppLink(booking.phone, `Hi ${booking.name.split(' ')[0]}, this is Sangeetha Events Pinner regarding your ${booking.eventType} booking on ${booking.date}.`)}
                               target="_blank" rel="noopener noreferrer"
                               className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg"
                               style={{ background: '#25D366', color: 'white' }}>
@@ -3303,7 +3391,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${STATUS_COLORS[b.status]}`}>
                             {STATUS_LABELS[b.status]}
                           </span>
-                          <a href={buildWhatsAppLink(b.phone, `Hi ${b.name.split(' ')[0]}, just a reminder about your ${b.eventType} at Madras Flavours Events on ${b.date} at ${b.time}. We look forward to seeing you!`)}
+                          <a href={buildWhatsAppLink(b.phone, `Hi ${b.name.split(' ')[0]}, just a reminder about your ${b.eventType} at Sangeetha Events Pinner on ${b.date} at ${b.time}. We look forward to seeing you!`)}
                             target="_blank" rel="noopener noreferrer"
                             className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg flex-shrink-0"
                             style={{ background: '#25D366', color: 'white' }}>
@@ -3361,7 +3449,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                           <td className="px-4 py-3.5 text-xs text-gray-500">{customer.lastEvent}</td>
                           <td className="px-4 py-3.5">
                             <div className="flex items-center gap-2">
-                              <a href={buildWhatsAppLink(customer.phone, `Hi ${customer.name.split(' ')[0]}, this is Madras Flavours Events. How can we help you today?`)}
+                              <a href={buildWhatsAppLink(customer.phone, `Hi ${customer.name.split(' ')[0]}, this is Sangeetha Events Pinner. How can we help you today?`)}
                                 target="_blank" rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg"
                                 style={{ background: '#25D366', color: 'white' }}>
@@ -3685,7 +3773,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                       onClick={saveVenueDetails}
                       disabled={isSavingVenueDetails}
                       className="text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-all mt-1 shadow-md active:scale-95 disabled:opacity-50"
-                      style={{ background: 'linear-gradient(135deg, #ED1C24, #F5A623)' }}
+                      style={{ background: 'linear-gradient(135deg, #C62127 0%, #B71C1C 40%, #06874D 100%)' }}
                     >
                       {isSavingVenueDetails ? 'Saving...' : 'Save Changes'}
                     </button>
@@ -3727,7 +3815,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                       onClick={savePricingDetails}
                       disabled={isSavingPricingDetails}
                       className="text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-all mt-4 shadow-md active:scale-95 disabled:opacity-50 w-full"
-                      style={{ background: 'linear-gradient(135deg, #ED1C24, #F5A623)' }}
+                      style={{ background: 'linear-gradient(135deg, #C62127 0%, #B71C1C 40%, #06874D 100%)' }}
                     >
                       {isSavingPricingDetails ? 'Saving...' : 'Save Pricing & Deposits'}
                     </button>
@@ -3856,7 +3944,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                       onClick={saveFormSettings}
                       disabled={isSavingFormSettings}
                       className="text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-all mt-2 shadow-md active:scale-95 disabled:opacity-50 w-full"
-                      style={{ background: 'linear-gradient(135deg, #ED1C24, #F5A623)' }}
+                      style={{ background: 'linear-gradient(135deg, #C62127 0%, #B71C1C 40%, #06874D 100%)' }}
                     >
                       {isSavingFormSettings ? 'Saving...' : 'Save Form Settings'}
                     </button>
@@ -3899,7 +3987,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                       onClick={saveNotificationSettings}
                       disabled={isSavingNotificationSettings}
                       className="text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-all mt-2 shadow-md active:scale-95 disabled:opacity-50 w-full"
-                      style={{ background: 'linear-gradient(135deg, #ED1C24, #F5A623)' }}
+                      style={{ background: 'linear-gradient(135deg, #C62127 0%, #B71C1C 40%, #06874D 100%)' }}
                     >
                       {isSavingNotificationSettings ? 'Saving...' : 'Save Notification Settings'}
                     </button>
@@ -4095,6 +4183,10 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
           )}
           {activeTab === 'access' && (
             <AccessControl currentUserRole={currentUser?.role} />
+          )}
+
+          {activeTab === 'content' && (
+            <WebsiteContentUI onNotify={(msg, type) => setCustomAlert({ message: msg, type })} />
           )}
 
           {/* ─── BOOKING TRACKER ─── */}
@@ -4359,7 +4451,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                 <span className="text-xs text-gray-400">Step {STATUS_FLOW.indexOf(selectedBooking.status) + 1} of {STATUS_FLOW.length}</span>
               </div>
               <div className="w-full bg-gray-100 rounded-full h-1.5">
-                <div className="h-1.5 rounded-full transition-all duration-500" style={{ width: `${((STATUS_FLOW.indexOf(selectedBooking.status) + 1) / STATUS_FLOW.length) * 100}%`, background: 'linear-gradient(90deg, #ED1C24, #F5A623)' }} />
+                <div className="h-1.5 rounded-full transition-all duration-500" style={{ width: `${((STATUS_FLOW.indexOf(selectedBooking.status) + 1) / STATUS_FLOW.length) * 100}%`, background: 'linear-gradient(90deg, #ED1C24, #06874D)' }} />
               </div>
             </div>
 
@@ -4377,7 +4469,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                     <div className="text-sm text-gray-500">{selectedBooking.phone}</div>
                     <div className="text-sm text-gray-500">{selectedBooking.address && selectedBooking.address !== 'N/A' ? `${selectedBooking.address} (${selectedBooking.postCode})` : 'No address provided'}</div>
                   </div>
-                  <a href={buildWhatsAppLink(selectedBooking.phone, `Hi ${selectedBooking.name.split(' ')[0]}, this is Madras Flavours Events regarding your ${selectedBooking.eventType} booking.`)}
+                  <a href={buildWhatsAppLink(selectedBooking.phone, `Hi ${selectedBooking.name.split(' ')[0]}, this is Sangeetha Events Pinner regarding your ${selectedBooking.eventType} booking.`)}
                     target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg"
                     style={{ background: '#25D366', color: 'white' }}>
@@ -5626,7 +5718,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                   <div className="flex gap-2">
                     <input type="text" placeholder="e.g. Extra 10 guests" value={extraLabel} onChange={(e) => setExtraLabel(e.target.value)} className="flex-1 border border-teal-200 rounded-lg px-3 py-2 text-sm focus:outline-none bg-white" />
                     <input type="number" placeholder="£ amount" value={extraAmount} onChange={(e) => setExtraAmount(e.target.value)} className="w-24 border border-teal-200 rounded-lg px-3 py-2 text-sm focus:outline-none bg-white" />
-                    <button onClick={() => addExtraCharge(selectedBooking.id)} className="text-white text-sm font-semibold px-3 py-2 rounded-lg" style={{ background: 'linear-gradient(135deg, #ED1C24, #F5A623)' }}>
+                    <button onClick={() => addExtraCharge(selectedBooking.id)} className="text-white text-sm font-semibold px-3 py-2 rounded-lg" style={{ background: 'linear-gradient(135deg, #C62127 0%, #B71C1C 40%, #06874D 100%)' }}>
                       <Icon name="PlusIcon" size={16} />
                     </button>
                   </div>
@@ -6110,7 +6202,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                 <div className="flex gap-2">
                   <button onClick={() => { updateStatus(selectedBooking.id, 'menu_sent'); setShowMenuPanel(true); }}
                     className="flex-1 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
-                    style={{ background: 'linear-gradient(135deg, #ED1C24, #F5A623)' }}>
+                    style={{ background: 'linear-gradient(135deg, #C62127 0%, #B71C1C 40%, #06874D 100%)' }}>
                     <Icon name="ClipboardDocumentListIcon" size={16} />
                     Send Menu Options
                   </button>
@@ -6119,7 +6211,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
               {selectedBooking.status === 'menu_sent' && (
                 <button onClick={() => updateStatus(selectedBooking.id, 'menu_selected')}
                   className="w-full text-white font-semibold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2"
-                  style={{ background: 'linear-gradient(135deg, #ED1C24, #F5A623)' }}>
+                  style={{ background: 'linear-gradient(135deg, #C62127 0%, #B71C1C 40%, #06874D 100%)' }}>
                   <Icon name="CheckIcon" size={16} />
                   Mark Menu as Selected by Customer
                 </button>
@@ -6127,7 +6219,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
               {selectedBooking.status === 'menu_selected' && (
                 <button onClick={() => updateStatus(selectedBooking.id, 'deposit_pending')}
                   className="w-full text-white font-semibold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2"
-                  style={{ background: 'linear-gradient(135deg, #ED1C24, #F5A623)' }}>
+                  style={{ background: 'linear-gradient(135deg, #C62127 0%, #B71C1C 40%, #06874D 100%)' }}>
                   <Icon name="BanknotesIcon" size={16} />
                   Request Deposit Payment
                 </button>
@@ -6178,7 +6270,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                       <button onClick={() => updateStatus(selectedBooking.id, 'final_invoice_sent')}
                         disabled={selectedBooking.discountRequest?.status === 'pending'}
                         className={`w-full text-white font-semibold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 ${selectedBooking.discountRequest?.status === 'pending' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        style={{ background: 'linear-gradient(135deg, #ED1C24, #F5A623)' }}>
+                        style={{ background: 'linear-gradient(135deg, #C62127 0%, #B71C1C 40%, #06874D 100%)' }}>
                         <Icon name="DocumentTextIcon" size={16} />
                         {selectedBooking.discountRequest?.status === 'pending' ? 'Awaiting Discount Approval' : 'Send Deposit Invoice (above)'}
                       </button>
@@ -6226,7 +6318,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                   </div>
                   <button onClick={() => updateStatus(selectedBooking.id, 'event_scheduled')}
                     className="w-full text-white font-semibold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2"
-                    style={{ background: 'linear-gradient(135deg, #ED1C24, #F5A623)' }}>
+                    style={{ background: 'linear-gradient(135deg, #C62127 0%, #B71C1C 40%, #06874D 100%)' }}>
                     <Icon name="CalendarIcon" size={16} />
                     Schedule Event & Add to Calendar
                   </button>
@@ -6234,7 +6326,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
               )}
               {selectedBooking.status === 'event_scheduled' && (
                 <div className="space-y-2">
-                  <a href={buildWhatsAppLink(selectedBooking.phone, `Hi ${selectedBooking.name.split(' ')[0]}, just a reminder — your ${selectedBooking.eventType} at Madras Flavours Events is coming up on *${selectedBooking.date}* at *${selectedBooking.time}*!\n\nWe look forward to seeing you and serving your guests! 🎉`)}
+                  <a href={buildWhatsAppLink(selectedBooking.phone, `Hi ${selectedBooking.name.split(' ')[0]}, just a reminder — your ${selectedBooking.eventType} at Sangeetha Events Pinner is coming up on *${selectedBooking.date}* at *${selectedBooking.time}*!\n\nWe look forward to seeing you and serving your guests! 🎉`)}
                     target="_blank" rel="noopener noreferrer"
                     className="w-full flex items-center justify-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-xl"
                     style={{ background: '#25D366', color: 'white' }}>
@@ -6446,7 +6538,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                   {selectedCustomer.phone}
                 </div>
               </div>
-              <a href={buildWhatsAppLink(selectedCustomer.phone, `Hi ${selectedCustomer.name.split(' ')[0]}, this is Madras Flavours Events. How can we help you today?`)}
+              <a href={buildWhatsAppLink(selectedCustomer.phone, `Hi ${selectedCustomer.name.split(' ')[0]}, this is Sangeetha Events Pinner. How can we help you today?`)}
                 target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl w-full"
                 style={{ background: '#25D366', color: 'white' }}>
@@ -6527,7 +6619,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
             <button
               onClick={() => setCustomAlert(null)}
               className="px-6 py-2 rounded-xl text-sm font-semibold text-white transition-all shadow-md active:scale-95 hover:brightness-110"
-              style={{ background: 'linear-gradient(135deg, #ED1C24, #F5A623)' }}
+              style={{ background: 'linear-gradient(135deg, #C62127 0%, #B71C1C 40%, #06874D 100%)' }}
             >
               OK
             </button>

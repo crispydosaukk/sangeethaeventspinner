@@ -9,7 +9,7 @@ exports.sendBookingEmail = onCall(async (request) => {
     const data = request.data;
     
     // Fetch notification settings
-    let notificationEmails = 'rahulbadugu22@gmail.com, catering@madrasflavours.co.uk, Digitalbotsolutions@gmail.com';
+    let notificationEmails = 'rahulbadugu22@gmail.com, catering@sangeethaevents.co.uk, Digitalbotsolutions@gmail.com';
     let notificationsEnabled = true;
     
     try {
@@ -47,12 +47,12 @@ exports.sendBookingEmail = onCall(async (request) => {
     const serviceName = data.serviceType || 'Booking';
     
     const mailOptions = {
-      from: `"Madras Flavours Events" <${emailUser}>`,
+      from: `"Sangeetha Events Pinner" <${emailUser}>`,
       to: notificationEmails,
       subject: `New ${serviceName} Request`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-          <h2 style="color: #F5A623; text-align: center; border-bottom: 2px solid #F5A623; padding-bottom: 10px;">New Booking Request</h2>
+          <h2 style="color: #C62127; text-align: center; border-bottom: 2px solid #C62127; padding-bottom: 10px;">New Booking Request</h2>
           <p style="font-size: 16px; color: #333;">Hello,</p>
           <p style="font-size: 16px; color: #333;">You have received a new booking request from your website. Here are the details:</p>
           
@@ -98,7 +98,7 @@ exports.sendBookingEmail = onCall(async (request) => {
           </table>
           
           ${data.message ? `
-          <div style="margin-top: 20px; padding: 15px; background-color: #f9f9f9; border-left: 4px solid #F5A623;">
+          <div style="margin-top: 20px; padding: 15px; background-color: #f9f9f9; border-left: 4px solid #C62127;">
             <p style="margin: 0; font-weight: bold;">Message from Customer:</p>
             <p style="margin: 10px 0 0 0; white-space: pre-wrap;">${data.message}</p>
           </div>

@@ -29,13 +29,13 @@ export default function AccessControl({ currentUserRole }: { currentUserRole?: s
   useEffect(() => {
     const unsubPerms = onSnapshot(collection(db, 'permissions'), (snap: any) => {
       setPermissions(snap.docs.map((d: any) => ({ id: d.id, ...d.data() })));
-    });
+    }, (err: any) => console.warn('AccessControl permissions notice:', err.message));
     const unsubRoles = onSnapshot(collection(db, 'roles'), (snap: any) => {
       setRoles(snap.docs.map((d: any) => ({ id: d.id, ...d.data() })));
-    });
+    }, (err: any) => console.warn('AccessControl roles notice:', err.message));
     const unsubUsers = onSnapshot(collection(db, 'users'), (snap: any) => {
       setUsers(snap.docs.map((d: any) => ({ id: d.id, ...d.data() })));
-    });
+    }, (err: any) => console.warn('AccessControl users notice:', err.message));
     return () => { unsubPerms(); unsubRoles(); unsubUsers(); };
   }, []);
 

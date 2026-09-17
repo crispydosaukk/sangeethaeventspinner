@@ -4,33 +4,41 @@ import Footer from '@/components/Footer';
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-[#070F0A] text-gray-100 flex flex-col">
       <Header />
       
-      <main className="flex-1 py-12 px-6 max-w-4xl mx-auto w-full">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-12">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Terms & Conditions</h1>
+      <main className="flex-1 py-28 px-6 max-w-4xl mx-auto w-full">
+        <div className="glass-card-dark rounded-2xl border border-emerald-900/30 p-8 md:p-12 shadow-2xl">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-950/50 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-4">
+            Policy &amp; Guidelines
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-8 font-display">
+            Terms &amp; Conditions — <span className="sangeetha-text-gradient">Sangeetha Events Pinner</span>
+          </h1>
           
-          <div className="space-y-6 text-gray-700 leading-relaxed">
+          <div className="space-y-6 text-gray-300 leading-relaxed text-sm sm:text-base">
             <p>
-              By proceeding with a booking at Madras Flavours Events, you agree to the following terms and conditions:
+              By proceeding with a booking or catering agreement with <strong className="text-white">Sangeetha Events Pinner</strong>, you agree to the following terms and conditions:
             </p>
             
             <ul className="list-disc pl-6 space-y-4">
               <li>
-                <strong>25% of the non-refundable Catering amount</strong> should be taken as advance and before 24 hours of the event day customer should pay the full invoice amount.
+                <strong className="text-white">25% non-refundable catering deposit</strong> is required to secure the event date and booking slot. The final invoice balance must be cleared at least 24 to 72 hours prior to the event date.
               </li>
               <li>
-                Quotation is valid for <strong>07 days</strong> from the date of the original quote offered.
+                Quotations provided are strictly valid for <strong className="text-white">7 days</strong> from the date issued.
               </li>
               <li>
-                Any food procured for an event, on a specific event date is to be consumed on the same day and <strong>not for retailing purpose</strong>.
+                All freshly prepared authentic South Indian food procured for an event date is strictly to be consumed on the event day and <strong className="text-white">not for resale or takeaway retailing</strong>, adhering to UK food hygiene standards.
               </li>
               <li>
-                The Buffet Service price is based on <strong>2 Hours</strong>; any additional hours will be charged.
+                Live counter and buffet service pricing is based on standard operational service hours; additional hours must be agreed upon in advance.
               </li>
               <li>
-                We outsourced private delivery on your behalf; Hence Madras Flavours <strong>does not take any responsibility</strong> for any inconvenience caused by the delivery driver.
+                For external delivery and logistics, Sangeetha Events ensures highest food packaging standards; client assumes venue receipt verification on delivery handover.
+              </li>
+              <li>
+                Any allergies or specific dietary requirements (e.g. Jain, nut-free, vegan) must be confirmed in writing at least 7 days before the event.
               </li>
             </ul>
           </div>
