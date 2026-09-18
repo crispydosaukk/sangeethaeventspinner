@@ -12,7 +12,7 @@ const Header: React.FC<HeaderProps> = () => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/95 border-b border-gray-200/80 shadow-sm transition-all duration-300">
+    <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-[#F4F8F5]/95 border-b border-emerald-950/10 shadow-xs transition-all duration-300">
       <div className="max-w-7xl mx-auto px-6 py-2.5 flex items-center justify-between">
         {/* Logo */}
         <a href="/" className="flex items-center group py-0.5">
@@ -58,7 +58,7 @@ const Header: React.FC<HeaderProps> = () => {
 
       {/* Mobile Menu */}
       {menuOpen && (
-        <div className="md:hidden backdrop-blur-2xl bg-white/98 border-t border-gray-100 px-6 py-5 flex flex-col gap-4 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="md:hidden backdrop-blur-2xl bg-[#F4F8F5] border-t border-emerald-950/10 px-6 py-5 flex flex-col gap-4 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
           <a href="#services" className="text-gray-800 hover:text-[#06874D] text-sm font-medium py-1" onClick={() => setMenuOpen(false)}>Services</a>
           <a href="#menus" className="text-gray-800 hover:text-[#06874D] text-sm font-medium py-1" onClick={() => setMenuOpen(false)}>Menus &amp; Packages</a>
           <a href="#faqs" className="text-gray-800 hover:text-[#06874D] text-sm font-medium py-1" onClick={() => setMenuOpen(false)}>FAQs</a>

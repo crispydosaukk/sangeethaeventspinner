@@ -551,9 +551,9 @@ export default function AdminPage() {
   }, []);
 
   const [bankDetails, setBankDetails] = useState({
-    accountName: 'Sangeetha Events Ltd',
-    sortCode: '20-00-00',
-    accountNumber: '12345678'
+    accountName: 'PINNER TIFFINS LTD',
+    sortCode: '404609',
+    accountNumber: '62213532'
   });
 
   useEffect(() => {
@@ -561,9 +561,9 @@ export default function AdminPage() {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setBankDetails({
-          accountName: data.accountName || 'Sangeetha Events Ltd',
-          sortCode: data.sortCode || '20-00-00',
-          accountNumber: data.accountNumber || '12345678'
+          accountName: data.accountName || 'PINNER TIFFINS LTD',
+          sortCode: data.sortCode || '404609',
+          accountNumber: data.accountNumber || '62213532'
         });
       }
     }, (err) => console.warn('Admin bank_details notice:', err.message));
@@ -572,9 +572,9 @@ export default function AdminPage() {
   const [venueDetails, setVenueDetails] = useState({
     venueName: 'Sangeetha Events Pinner',
     minGuests: '30',
-    contactEmail: 'catering@sangeethaevents.co.uk',
-    phone: '+44 7700 900000',
-    whatsapp: '+447700900000',
+    contactEmail: 'Svrpinneruk@gmail.com',
+    phone: '+44 7507 271506',
+    whatsapp: '+447507271506',
     address: '123 Event Plaza, London, UK'
   });
 
@@ -585,9 +585,9 @@ export default function AdminPage() {
         setVenueDetails({
           venueName: data.venueName || 'Sangeetha Events Pinner',
           minGuests: data.minGuests || '30',
-          contactEmail: data.contactEmail || 'catering@sangeethaevents.co.uk',
-          phone: data.phone || '+44 7700 900000',
-          whatsapp: data.whatsapp || '+447700900000',
+          contactEmail: data.contactEmail || 'Svrpinneruk@gmail.com',
+          phone: data.phone || '+44 7507 271506',
+          whatsapp: data.whatsapp || '+447507271506',
           address: data.address || '123 Event Plaza, London, UK'
         });
       }
@@ -705,7 +705,7 @@ export default function AdminPage() {
 
   const [notificationSettings, setNotificationSettings] = useState({
     enabled: true,
-    emails: 'rahulbadugu22@gmail.com, catering@sangeethaevents.co.uk, Digitalbotsolutions@gmail.com'
+    emails: 'rahulbadugu22@gmail.com, Svrpinneruk@gmail.com, Digitalbotsolutions@gmail.com'
   });
   const [isSavingNotificationSettings, setIsSavingNotificationSettings] = useState(false);
 
@@ -728,7 +728,7 @@ export default function AdminPage() {
         const data = docSnap.data();
         setNotificationSettings({
           enabled: data.enabled !== undefined ? data.enabled : true,
-          emails: data.emails || 'rahulbadugu22@gmail.com, catering@sangeethaevents.co.uk, Digitalbotsolutions@gmail.com'
+          emails: data.emails || 'rahulbadugu22@gmail.com, Svrpinneruk@gmail.com, Digitalbotsolutions@gmail.com'
         });
       }
     }, (err) => console.warn('Admin notification_settings notice:', err.message));
@@ -2819,7 +2819,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
 
   // ??? DASHBOARD ????????????????????????????????????????????????????????????
   return (
-    <div className="h-screen font-dashboard bg-[#F8FAFC] flex overflow-hidden selection:bg-amber-500/20 selection:text-amber-900 relative">
+    <div className="h-screen font-dashboard bg-[#F8FAFC] flex overflow-hidden selection:bg-amber-500/20 selection:text-amber-900 relative text-gray-900">
       {/* Sign Out Confirmation Modal (Centered in screen) */}
       {showSignOutConfirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">

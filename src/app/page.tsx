@@ -312,38 +312,32 @@ export default function HomePage() {
   };
 
 ﻿  return (
-    <div className="min-h-screen bg-[#070F0A] text-gray-100 overflow-x-hidden selection:bg-emerald-500/30 selection:text-emerald-200">
+    <div className="min-h-screen bg-[#F4F8F5] text-gray-900 overflow-x-hidden selection:bg-emerald-500/30 selection:text-emerald-900">
       <Header onOpenModal={() => {}} />
 
       {/* ─── HERO WITH ATMOSPHERIC BACKGROUND IMAGE ─── */}
-      <section className="relative pt-28 pb-16 px-6 min-h-[92vh] flex items-center justify-center overflow-hidden">
-        {/* Background Image with Dark Luxury Vignette Overlay */}
-        <div
-          className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat transition-transform duration-1000 scale-105"
-          style={{ backgroundImage: "url('/assets/images/hero-catering-bg.jpg')" }}
-        />
-        {/* Multilayered cinematic gradient overlay */}
-        <div className="absolute inset-0 z-0 bg-gradient-to-r from-black/95 via-black/80 to-black/90 md:from-black/90 md:via-black/75 md:to-black/85" />
-        <div className="absolute inset-0 z-0 bg-gradient-to-t from-[#0E0906] via-transparent to-black/60" />
-        <div className="absolute top-0 right-1/4 w-96 h-96 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
+      <section className="relative pt-32 pb-20 px-6 min-h-[90vh] flex items-center justify-center overflow-hidden bg-[#F4F8F5]">
+        {/* Subtle ambient glows */}
+        <div className="absolute top-0 right-1/4 w-96 h-96 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-10 left-10 w-96 h-96 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
 
         <div className="relative z-10 max-w-7xl mx-auto w-full flex flex-col lg:flex-row items-center gap-12 lg:gap-16 py-6">
 
           {/* ── Left Column: Compelling Narrative ── */}
           <div className="flex-1 text-center lg:text-left space-y-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-emerald-500/30 bg-emerald-950/40 backdrop-blur-md shadow-lg shadow-emerald-950/30">
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-              <span className="text-xs font-bold uppercase tracking-widest text-amber-300">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-emerald-300 bg-emerald-100/90 shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-[#06874D] animate-pulse"></span>
+              <span className="text-xs font-bold uppercase tracking-widest text-emerald-950">
                 {heroContent.badgeText}
               </span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.12]">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-gray-900 leading-[1.12]">
               {heroContent.titleLine1} <br className="hidden sm:inline" />
               <span className="gold-text-gradient font-display">{heroContent.titleHighlight}</span>
             </h1>
 
-            <p className="text-base sm:text-lg text-gray-300 max-w-2xl lg:mx-0 mx-auto leading-relaxed">
+            <p className="text-base sm:text-lg text-gray-700 max-w-2xl lg:mx-0 mx-auto leading-relaxed font-medium">
               {heroContent.subtitle}
             </p>
 
@@ -352,9 +346,9 @@ export default function HomePage() {
               {heroContent.tags.map((tag, idx) => (
                 <span
                   key={idx}
-                  className="px-3.5 py-1.5 rounded-xl text-xs font-medium bg-white/5 border border-white/10 text-gray-300 backdrop-blur-md flex items-center gap-1.5"
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white/90 border border-emerald-200/80 text-gray-800 shadow-2xs flex items-center gap-1.5"
                 >
-                  <span className="text-amber-400">{tag.icon}</span> {tag.text}
+                  <span className="text-[#06874D]">{tag.icon}</span> {tag.text}
                 </span>
               ))}
             </div>
@@ -363,7 +357,7 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-3">
               <a
                 href="#menus"
-                className="text-white font-semibold px-8 py-3.5 rounded-xl transition-all shadow-xl hover:shadow-red-500/25 hover:scale-[1.02] flex items-center justify-center gap-2"
+                className="text-white font-semibold px-8 py-3.5 rounded-xl transition-all shadow-md hover:shadow-red-500/25 hover:scale-[1.02] flex items-center justify-center gap-2"
                 style={{ background: 'linear-gradient(135deg, #C62127 0%, #D82D34 45%, #06874D 100%)' }}
               >
                 <span>{heroContent.primaryBtnText}</span>
@@ -371,41 +365,42 @@ export default function HomePage() {
               </a>
               <a
                 href="#book"
-                className="glass-card-dark text-gray-200 hover:text-white font-semibold px-8 py-3.5 rounded-xl transition-all hover:border-emerald-400/50 flex items-center justify-center gap-2"
+                className="bg-white border border-gray-300 text-gray-900 hover:border-emerald-500 font-semibold px-8 py-3.5 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2"
               >
                 <span>{heroContent.secondaryBtnText}</span>
                 <Icon name="CalendarDaysIcon" size={16} />
               </a>
             </div>
           </div>
-﻿          {/* ── Right Column: Modern Glassmorphic Booking Form ── */}
+
+          {/* ── Right Column: High-Visibility Booking Form ── */}
           <div id="book" className="w-full lg:w-[490px] flex-shrink-0">
-            <div className="glass-card-gold rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden backdrop-blur-2xl">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden border border-emerald-200/90 text-gray-900">
               <div className="absolute -top-16 -right-16 w-40 h-40 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none" />
 
               <div className="relative z-10 text-center mb-6">
-                <h2 className="text-2xl font-bold text-white tracking-tight flex items-center justify-center gap-2">
+                <h2 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center justify-center gap-2">
                   <span>Request an Event Booking</span>
                 </h2>
-                <p className="text-xs text-amber-200/80 mt-1">
+                <p className="text-xs text-gray-600 font-medium mt-1">
                   Fill in your event details below to receive a personalized quote within 24 hours.
                 </p>
               </div>
 
               {customHomeAlert && (
-                <div className={`mb-4 p-3 rounded-xl text-xs font-medium border flex items-center gap-2 ${customHomeAlert.type === 'error' ? 'bg-red-950/50 border-red-500/40 text-red-200' : 'bg-emerald-950/50 border-emerald-500/40 text-emerald-200'}`}>
+                <div className={`mb-4 p-3 rounded-xl text-xs font-medium border flex items-center gap-2 ${customHomeAlert.type === 'error' ? 'bg-red-50 border-red-200 text-red-800 font-medium' : 'bg-emerald-50 border-emerald-200 text-emerald-800 font-medium'}`}>
                   <Icon name={customHomeAlert.type === 'error' ? 'ExclamationTriangleIcon' : 'CheckCircleIcon'} size={18} />
                   <span>{customHomeAlert.message}</span>
                 </div>
               )}
 
               {submitted ? (
-                <div className="text-center py-10 rounded-2xl border border-emerald-500/30 bg-emerald-950/30 backdrop-blur-md">
+                <div className="text-center py-10 rounded-2xl border border-emerald-200 bg-emerald-50/60">
                   <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
                     <Icon name="CheckIcon" size={28} />
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-1">Booking Enquiry Received!</h3>
-                  <p className="text-xs text-emerald-200/80 max-w-xs mx-auto mb-6 leading-relaxed">
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">Booking Enquiry Received!</h3>
+                  <p className="text-xs text-gray-600 max-w-xs mx-auto mb-6 leading-relaxed font-medium">
                     Thank you for choosing Sangeetha Events Pinner. Our catering team will review your requirements and reach out promptly.
                   </p>
                   <button
@@ -421,18 +416,18 @@ export default function HomePage() {
                   {/* Name & Phone */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-emerald-200/90 mb-1">Your Name *</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Your Name *</label>
                       <input
                         type="text"
                         required
                         value={bookingForm.name}
                         onChange={(e) => setBookingForm({ ...bookingForm, name: e.target.value })}
-                        className="w-full bg-white/5 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
+                        className="w-full bg-white text-gray-900 border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm font-medium placeholder-gray-400 shadow-sm focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
                         placeholder="e.g. Anand Kumar"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-emerald-200/90 mb-1">UK Phone *</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">UK Phone *</label>
                       <input
                         type="tel"
                         required
@@ -448,23 +443,23 @@ export default function HomePage() {
                   {/* Email & Event Type */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-emerald-200/90 mb-1">Email Address *</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Email Address *</label>
                       <input
                         type="email"
                         required
                         value={bookingForm.email}
                         onChange={(e) => setBookingForm({ ...bookingForm, email: e.target.value })}
-                        className="w-full bg-white/5 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
+                        className="w-full bg-white text-gray-900 border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm font-medium placeholder-gray-400 shadow-sm focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
                         placeholder="name@example.com"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-emerald-200/90 mb-1">Event Type *</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Event Type *</label>
                       <select
                         required
                         value={bookingForm.eventType}
                         onChange={(e) => setBookingForm({ ...bookingForm, eventType: e.target.value })}
-                        className="w-full bg-[#0A1810] border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
+                        className="w-full bg-white text-gray-900 border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm font-medium placeholder-gray-400 shadow-sm focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
                       >
                         <option value="">Select type</option>
                         {EVENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
@@ -474,12 +469,12 @@ export default function HomePage() {
 
                   {/* Service Type */}
                   <div>
-                    <label className="block text-xs font-medium text-emerald-200/90 mb-1">Service Format *</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Service Format *</label>
                     <select
                       required
                       value={bookingForm.serviceType}
                       onChange={(e) => setBookingForm({ ...bookingForm, serviceType: e.target.value })}
-                      className="w-full bg-[#0A1810] border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
+                      className="w-full bg-white text-gray-900 border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm font-medium placeholder-gray-400 shadow-sm focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
                     >
                       <option value="">Select Service Type</option>
                       <option value="Outdoor Catering">Outdoor Catering (At your venue / home)</option>
@@ -490,24 +485,24 @@ export default function HomePage() {
                   {/* Address & Postcode */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-emerald-200/90 mb-1">Event Address *</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Event Address *</label>
                       <input
                         type="text"
                         required
                         value={bookingForm.address}
                         onChange={(e) => setBookingForm({ ...bookingForm, address: e.target.value })}
-                        className="w-full bg-white/5 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
+                        className="w-full bg-white text-gray-900 border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm font-medium placeholder-gray-400 shadow-sm focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
                         placeholder="Street / Hall Address"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-emerald-200/90 mb-1">Event Postcode *</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Event Postcode *</label>
                       <input
                         type="text"
                         required
                         value={bookingForm.postCode}
                         onChange={(e) => setBookingForm({ ...bookingForm, postCode: e.target.value })}
-                        className="w-full bg-white/5 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
+                        className="w-full bg-white text-gray-900 border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm font-medium placeholder-gray-400 shadow-sm focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
                         placeholder="e.g. RG1 1AA"
                       />
                     </div>
@@ -515,7 +510,7 @@ export default function HomePage() {
 
                   {/* Preferred Package */}
                   <div>
-                    <label className="block text-xs font-medium text-emerald-200/90 mb-1 flex items-center justify-between">
+                    <label className="block text-xs font-bold text-gray-700 mb-1 flex items-center justify-between">
                       <span>Preferred Catering Package</span>
                       {bookingForm.selectedPackage && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-amber-300 border border-emerald-500/30">
@@ -526,7 +521,7 @@ export default function HomePage() {
                     <select
                       value={bookingForm.selectedPackage}
                       onChange={(e) => setBookingForm({ ...bookingForm, selectedPackage: e.target.value })}
-                      className="w-full bg-[#0A1810] border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
+                      className="w-full bg-white text-gray-900 border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm font-medium placeholder-gray-400 shadow-sm focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
                     >
                       <option value="">No specific package – help me choose</option>
                       <optgroup label="── Banquet Packages ──">
@@ -545,23 +540,23 @@ export default function HomePage() {
                   {/* Date, Time & Guest count */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     <div>
-                      <label className="block text-xs font-medium text-emerald-200/90 mb-1">Date *</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Date *</label>
                       <input
                         type="date"
                         required
                         min={new Date().toISOString().split('T')[0]}
                         value={bookingForm.date}
                         onChange={(e) => setBookingForm({ ...bookingForm, date: e.target.value })}
-                        className="w-full bg-[#0A1810] border border-white/15 rounded-xl px-2.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
+                        className="w-full bg-white text-gray-900 border border-gray-300 rounded-xl px-2.5 py-2.5 text-xs font-medium shadow-sm focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-emerald-200/90 mb-1">Time Slot *</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Time Slot *</label>
                       <select
                         required
                         value={bookingForm.timeOfDay}
                         onChange={(e) => setBookingForm({ ...bookingForm, timeOfDay: e.target.value })}
-                        className="w-full bg-[#0A1810] border border-white/15 rounded-xl px-2 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
+                        className="w-full bg-white text-gray-900 border border-gray-300 rounded-xl px-2 py-2.5 text-xs font-medium shadow-sm focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
                       >
                         <option value="">Select Time</option>
                         {formSettings.timeSlots.map((slot) => (
@@ -570,7 +565,7 @@ export default function HomePage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-emerald-200/90 mb-1">Guests * (Min {minGuests})</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Guests * (Min {minGuests})</label>
                       <input
                         type="number"
                         required
@@ -578,7 +573,7 @@ export default function HomePage() {
                         max={500}
                         value={bookingForm.guests}
                         onChange={(e) => setBookingForm({ ...bookingForm, guests: e.target.value })}
-                        className="w-full bg-white/5 border border-white/15 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
+                        className="w-full bg-white text-gray-900 border border-gray-300 rounded-xl px-3 py-2.5 text-xs font-medium shadow-sm focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all"
                         placeholder={`Min ${minGuests}`}
                       />
                     </div>
@@ -586,12 +581,12 @@ export default function HomePage() {
 
                   {/* Notes */}
                   <div>
-                    <label className="block text-xs font-medium text-emerald-200/90 mb-1">Special Preferences / Dietary Notes</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Special Preferences / Dietary Notes</label>
                     <textarea
                       rows={2}
                       value={bookingForm.message}
                       onChange={(e) => setBookingForm({ ...bookingForm, message: e.target.value })}
-                      className="w-full bg-white/5 border border-white/15 rounded-xl px-3.5 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all resize-none"
+                      className="w-full bg-white text-gray-900 border border-gray-300 rounded-xl px-3.5 py-2 text-sm font-medium placeholder-gray-400 shadow-sm focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/20 transition-all resize-none"
                       placeholder="e.g. Jain dietary preferences, additional dessert stations, spice level..."
                     />
                   </div>
@@ -624,7 +619,7 @@ export default function HomePage() {
       </section>
 
       {/* ─── HIGHLIGHT METRICS STRIP ─── */}
-      <section className="relative z-20 py-8 px-6 border-y border-white/10 bg-[#0A160F]">
+      <section className="relative z-20 py-8 px-6 border-y border-emerald-900/10 bg-[#E6EFEA]">
         <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           {[
             { value: '500+', label: 'Celebrations Hosted' },
@@ -632,79 +627,79 @@ export default function HomePage() {
             { value: '4.9 ★', label: 'Average Client Rating' },
             { value: '100%', label: 'Pure Veg Fresh Preparation' },
           ].map((stat) => (
-            <div key={stat.label} className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
-              <div className="text-2xl sm:text-3xl font-extrabold gold-text-gradient">{stat.value}</div>
-              <div className="text-xs text-gray-400 font-medium mt-1">{stat.label}</div>
+            <div key={stat.label} className="p-4 rounded-2xl bg-white/90 border border-emerald-200/70 shadow-xs">
+              <div className="text-2xl sm:text-3xl font-extrabold text-[#06874D]">{stat.value}</div>
+              <div className="text-xs text-gray-800 font-bold mt-1">{stat.label}</div>
             </div>
           ))}
         </div>
       </section>
 ﻿      {/* ─── CATERING SERVICES SECTION ─── */}
-      <section id="services" className="py-20 px-6 bg-[#070F0A]">
+      <section id="services" className="py-20 px-6 bg-[#F4F8F5]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
-            <span className="text-xs font-bold uppercase tracking-widest text-amber-400 bg-emerald-500/10 px-4 py-1.5 rounded-full border border-emerald-500/20">
+            <span className="text-xs font-bold uppercase tracking-widest text-emerald-950 bg-emerald-100 px-4 py-1.5 rounded-full border border-emerald-300">
               Our Core Services
             </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white">Bespoke Catering Tailored For Every Occasion</h2>
-            <p className="text-gray-400 text-sm sm:text-base leading-relaxed">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">Bespoke Catering Tailored For Every Occasion</h2>
+            <p className="text-gray-700 text-sm sm:text-base leading-relaxed font-medium">
               Whether celebrating a wedding, milestone birthday, or hosting an intimate family ceremony, we provide comprehensive catering setups with authentic heritage taste.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Service 1 */}
-            <div className="glass-card-dark rounded-3xl p-8 hover:border-emerald-400/40 transition-all duration-300 group flex flex-col justify-between">
+            <div className="bg-white rounded-3xl p-8 border border-emerald-200/80 shadow-md hover:shadow-xl hover:border-emerald-400 transition-all duration-300 group flex flex-col justify-between text-gray-900">
               <div className="space-y-4">
                 <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-amber-400 text-2xl group-hover:scale-110 transition-transform">
                   🥞
                 </div>
-                <h3 className="text-xl font-bold text-white group-hover:text-emerald-300 transition-colors">Live Dosa Party Experience</h3>
-                <p className="text-sm text-gray-400 leading-relaxed">
+                <h3 className="text-xl font-bold text-gray-900 group-hover:text-emerald-300 transition-colors">Live Dosa Party Experience</h3>
+                <p className="text-sm text-gray-600 leading-relaxed font-medium">
                   On-site master chefs preparing sizzling hot crisp dosas, uthappams, piping sambar, and an assortment of fresh chutneys directly in front of your guests.
                 </p>
               </div>
-              <div className="pt-6 border-t border-white/10 mt-6 flex items-center justify-between">
-                <span className="text-xs font-semibold text-amber-400">From £11.00 / guest</span>
-                <a href="#book" onClick={() => handleEnquireNow('Live Dosa Party (Weekday: £11 / Weekend: £12)')} className="text-xs font-bold text-white hover:text-emerald-300 flex items-center gap-1">
+              <div className="pt-6 border-t border-gray-100 mt-6 flex items-center justify-between">
+                <span className="text-xs font-bold text-emerald-800">From £11.00 / guest</span>
+                <a href="#book" onClick={() => handleEnquireNow('Live Dosa Party (Weekday: £11 / Weekend: £12)')} className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1">
                   Enquire Now →
                 </a>
               </div>
             </div>
 
             {/* Service 2 */}
-            <div className="glass-card-dark rounded-3xl p-8 hover:border-emerald-400/40 transition-all duration-300 group flex flex-col justify-between border-emerald-500/30 shadow-lg shadow-emerald-950/20">
+            <div className="bg-white rounded-3xl p-8 border-2 border-emerald-300 shadow-lg hover:shadow-2xl hover:border-emerald-500 transition-all duration-300 group flex flex-col justify-between text-gray-900">
               <div className="space-y-4">
                 <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 text-2xl group-hover:scale-110 transition-transform">
                   🍛
                 </div>
-                <h3 className="text-xl font-bold text-white group-hover:text-emerald-300 transition-colors">Grand Banquet Packages</h3>
-                <p className="text-sm text-gray-400 leading-relaxed">
+                <h3 className="text-xl font-bold text-gray-900 group-hover:text-emerald-300 transition-colors">Grand Banquet Packages</h3>
+                <p className="text-sm text-gray-600 leading-relaxed font-medium">
                   Sumptuous multi-course feast featuring premium starters, aromatic curries, traditional biryanis, warm breads, and artisanal Indian desserts.
                 </p>
               </div>
-              <div className="pt-6 border-t border-white/10 mt-6 flex items-center justify-between">
-                <span className="text-xs font-semibold text-amber-400">5 Distinct Packages</span>
-                <a href="#menus" className="text-xs font-bold text-white hover:text-emerald-300 flex items-center gap-1">
+              <div className="pt-6 border-t border-gray-100 mt-6 flex items-center justify-between">
+                <span className="text-xs font-bold text-emerald-800">5 Distinct Packages</span>
+                <a href="#menus" className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1">
                   View Packages →
                 </a>
               </div>
             </div>
 
             {/* Service 3 */}
-            <div className="glass-card-dark rounded-3xl p-8 hover:border-emerald-400/40 transition-all duration-300 group flex flex-col justify-between">
+            <div className="bg-white rounded-3xl p-8 border border-emerald-200/80 shadow-md hover:shadow-xl hover:border-emerald-400 transition-all duration-300 group flex flex-col justify-between text-gray-900">
               <div className="space-y-4">
                 <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-amber-400 text-2xl group-hover:scale-110 transition-transform">
                   🏛️
                 </div>
-                <h3 className="text-xl font-bold text-white group-hover:text-emerald-300 transition-colors">Party Hall &amp; Dry Hire</h3>
-                <p className="text-sm text-gray-400 leading-relaxed">
+                <h3 className="text-xl font-bold text-gray-900 group-hover:text-emerald-300 transition-colors">Party Hall &amp; Dry Hire</h3>
+                <p className="text-sm text-gray-600 leading-relaxed font-medium">
                   Dedicated in-house banquet facilities equipped with dining seating, audio systems, ambient lighting, and full kitchen amenities in Pinner & Greater London.
                 </p>
               </div>
-              <div className="pt-6 border-t border-white/10 mt-6 flex items-center justify-between">
-                <span className="text-xs font-semibold text-amber-400">Full Setup &amp; Service</span>
-                <a href="#book" onClick={() => handleEnquireNow('In-House Party Hall')} className="text-xs font-bold text-white hover:text-emerald-300 flex items-center gap-1">
+              <div className="pt-6 border-t border-gray-100 mt-6 flex items-center justify-between">
+                <span className="text-xs font-bold text-emerald-800">Full Setup &amp; Service</span>
+                <a href="#book" onClick={() => handleEnquireNow('In-House Party Hall')} className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1">
                   Enquire Hall →
                 </a>
               </div>
@@ -714,13 +709,13 @@ export default function HomePage() {
       </section>
 
       {/* ─── MENUS & PACKAGES SHOWCASE ─── */}
-      <section id="menus" className="py-20 px-6 bg-[#050B07] border-t border-white/10">
+      <section id="menus" className="py-20 px-6 bg-[#EAF2ED] border-t border-emerald-900/10">
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-3xl mx-auto mb-12 space-y-3">
             <span className="text-xs font-bold uppercase tracking-widest text-amber-400 bg-emerald-500/10 px-4 py-1.5 rounded-full border border-emerald-500/20">
               Transparent Pricing &amp; Menus
             </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white">Carefully Crafted Banquet Packages</h2>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">Carefully Crafted Banquet Packages</h2>
             <p className="text-gray-400 text-sm sm:text-base leading-relaxed">
               Every package is designed to delight your guests with genuine South Indian gourmet flavours. Select any package to pre-fill your booking enquiry.
             </p>
@@ -736,7 +731,7 @@ export default function HomePage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveMenuTab(tab.id)}
-                className={`px-6 py-3 rounded-2xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${activeMenuTab === tab.id ? 'text-white shadow-xl shadow-emerald-950/40 scale-105' : 'bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:border-white/20'}`}
+                className={`px-6 py-3 rounded-2xl text-sm font-bold transition-all duration-200 flex items-center gap-2 ${activeMenuTab === tab.id ? 'text-white shadow-lg scale-105' : 'bg-white border border-emerald-200 text-gray-700 hover:text-gray-950 hover:border-emerald-400 shadow-xs'}`}
                 style={activeMenuTab === tab.id ? { background: 'linear-gradient(135deg, #C62127 0%, #D82D34 45%, #06874D 100%)' } : {}}
               >
                 <span>{tab.label}</span>
@@ -750,7 +745,7 @@ export default function HomePage() {
               {NEW_PACKAGES.map((pkg: any) => (
                 <div
                   key={pkg.id}
-                  className="glass-card-dark rounded-3xl p-7 flex flex-col justify-between hover:border-emerald-400/50 hover:-translate-y-1 transition-all duration-300 relative group"
+                  className="bg-white rounded-3xl p-7 flex flex-col justify-between border border-emerald-200/80 shadow-md hover:shadow-2xl hover:border-emerald-400 hover:-translate-y-1 transition-all duration-300 relative group text-gray-900"
                 >
                   {pkg.tag && (
                     <div className="absolute top-5 right-5 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-red-600/90 text-white shadow-md">
@@ -759,19 +754,19 @@ export default function HomePage() {
                   )}
 
                   <div>
-                    <h3 className="text-2xl font-bold text-white mb-2">{pkg.name}</h3>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">{pkg.name}</h3>
                     <div className="flex items-baseline gap-2 mb-4">
-                      <span className="text-3xl font-extrabold gold-text-gradient">£{pkg.pricePerPerson}</span>
-                      <span className="text-xs text-gray-400 font-medium">/ person</span>
-                      {pkg.guestLabel && <span className="text-[11px] text-amber-300/80 ml-2">({pkg.guestLabel})</span>}
+                      <span className="text-3xl font-extrabold text-[#06874D]">£{pkg.pricePerPerson}</span>
+                      <span className="text-xs text-gray-600 font-semibold">/ person</span>
+                      {pkg.guestLabel && <span className="text-[11px] text-emerald-800 font-bold ml-2">({pkg.guestLabel})</span>}
                     </div>
 
-                    <div className="border-t border-white/10 pt-4 mb-4">
-                      <div className="text-xs font-bold uppercase tracking-wider text-emerald-400/90 mb-3">Included Courses:</div>
+                    <div className="border-t border-gray-200 pt-4 mb-4">
+                      <div className="text-xs font-bold uppercase tracking-wider text-emerald-800 mb-3">Included Courses:</div>
                       <ul className="space-y-2.5">
                         {pkg.items.map((item: string, i: number) => (
-                          <li key={i} className="text-xs text-gray-300 flex items-start gap-2.5 leading-relaxed">
-                            <span className="text-amber-400 mt-0.5 font-bold">✓</span>
+                          <li key={i} className="text-xs text-gray-800 font-medium flex items-start gap-2.5 leading-relaxed">
+                            <span className="text-emerald-600 mt-0.5 font-bold">✓</span>
                             <span>{item}</span>
                           </li>
                         ))}
@@ -779,7 +774,7 @@ export default function HomePage() {
                     </div>
 
                     {pkg.complimentary && (
-                      <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-amber-300 italic mb-6">
+                      <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-950 font-semibold mb-6">
                         🎁 {pkg.complimentary}
                       </div>
                     )}
@@ -802,10 +797,10 @@ export default function HomePage() {
           {activeMenuTab === 'menu' && (
             <div className="space-y-4 max-w-4xl mx-auto">
               {MENU_CATEGORIES && Object.entries(MENU_CATEGORIES).map(([catKey, cat]: [string, any]) => (
-                <div key={catKey} className="glass-card-dark rounded-2xl border border-white/10 overflow-hidden transition-all">
+                <div key={catKey} className="bg-white rounded-2xl border border-emerald-200/80 shadow-xs overflow-hidden transition-all text-gray-900">
                   <button
                     onClick={() => toggleSection(catKey)}
-                    className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
+                    className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-emerald-50/40 transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-xl">🍲</span>
@@ -885,14 +880,14 @@ export default function HomePage() {
       </section>
 
       {/* ─── FREQUENTLY ASKED QUESTIONS ─── */}
-      <section id="faqs" className="py-20 px-6 bg-[#070F0A]">
+      <section id="faqs" className="py-20 px-6 bg-[#F4F8F5] border-t border-emerald-900/10">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12 space-y-3">
             <span className="text-xs font-bold uppercase tracking-widest text-amber-400 bg-emerald-500/10 px-4 py-1.5 rounded-full border border-emerald-500/20">
               Got Questions?
             </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white">Frequently Asked Questions</h2>
-            <p className="text-gray-400 text-sm">Everything you need to know about our outdoor and live catering setups.</p>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">Frequently Asked Questions</h2>
+            <p className="text-gray-700 text-sm font-medium">Everything you need to know about our outdoor and live catering setups.</p>
           </div>
 
           <div className="space-y-3.5">
@@ -900,16 +895,16 @@ export default function HomePage() {
               const faqKey = `faq-${idx}`;
               const isOpen = expandedSection === faqKey;
               return (
-                <div key={idx} className="glass-card-dark rounded-2xl border border-white/10 overflow-hidden transition-all">
+                <div key={idx} className="bg-white rounded-2xl border border-emerald-200/80 shadow-xs overflow-hidden transition-all text-gray-900">
                   <button
                     onClick={() => toggleSection(faqKey)}
-                    className="w-full px-6 py-4 text-left flex items-center justify-between gap-4 hover:bg-white/5 transition-colors"
+                    className="w-full px-6 py-4 text-left flex items-center justify-between gap-4 hover:bg-emerald-50/40 transition-colors"
                   >
-                    <span className="text-sm font-semibold text-white">{faq.question}</span>
+                    <span className="text-sm font-bold text-gray-900">{faq.question}</span>
                     <Icon name={isOpen ? 'ChevronUpIcon' : 'ChevronDownIcon'} size={18} className="text-amber-400 flex-shrink-0" />
                   </button>
                   {isOpen && (
-                    <div className="px-6 pb-5 pt-1 text-xs text-gray-300 leading-relaxed border-t border-white/10 bg-black/20">
+                    <div className="px-6 pb-5 pt-2 text-xs text-gray-700 font-medium leading-relaxed border-t border-emerald-100 bg-emerald-50/20">
                       {faq.answer}
                     </div>
                   )}

@@ -61,20 +61,20 @@ export default function MenusTabUI({
           {packages.map((pkg, i) => (
             <div key={pkg.id || i} className="bg-white rounded-xl border border-gray-200 p-5">
               <div className="flex justify-between items-center mb-3">
-                <input type="text" value={pkg.name} onChange={e => setPackages(p => p.map((x, idx) => idx === i ? { ...x, name: e.target.value } : x))} className="text-lg font-bold border-b border-transparent hover:border-gray-300 focus:border-amber-500 focus:outline-none w-1/2" />
+                <input type="text" value={pkg.name} onChange={e => setPackages(p => p.map((x, idx) => idx === i ? { ...x, name: e.target.value } : x))} className="text-lg font-bold border border-gray-200 rounded-lg px-3 py-1.5 focus:border-emerald-500 focus:outline-none w-1/2 text-gray-900 bg-white shadow-2xs" />
                 <div className="flex items-center gap-1">
                   <span className="text-gray-500">£</span>
-                  <input type="number" value={pkg.pricePerPerson} onChange={e => setPackages(p => p.map((x, idx) => idx === i ? { ...x, pricePerPerson: Number(e.target.value) } : x))} className="w-20 text-right border-b border-transparent hover:border-gray-300 focus:border-amber-500 focus:outline-none font-bold text-amber-600" />
+                  <input type="number" value={pkg.pricePerPerson} onChange={e => setPackages(p => p.map((x, idx) => idx === i ? { ...x, pricePerPerson: Number(e.target.value) } : x))} className="w-24 text-right border border-gray-200 rounded-lg px-2.5 py-1.5 focus:border-emerald-500 focus:outline-none font-bold text-emerald-700 bg-white shadow-2xs" />
                   <span className="text-sm text-gray-500">/pp</span>
                 </div>
               </div>
               <div className="mb-3">
                  <label className="text-xs text-gray-500">Items Included (one per line)</label>
-                 <textarea rows={6} value={(pkg.items || []).join('\n')} onChange={e => setPackages(p => p.map((x, idx) => idx === i ? { ...x, items: e.target.value.split('\n') } : x))} className="w-full text-sm border border-gray-200 rounded p-2 focus:outline-none mt-1" />
+                 <textarea rows={6} value={(pkg.items || []).join('\n')} onChange={e => setPackages(p => p.map((x, idx) => idx === i ? { ...x, items: e.target.value.split('\n') } : x))} className="w-full text-sm border border-gray-300 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-emerald-500 mt-1 text-gray-900 bg-white font-medium shadow-2xs" />
               </div>
               <div>
                  <label className="text-xs text-gray-500">Tag (e.g. Additional 20% VAT Tax)</label>
-                 <input type="text" value={pkg.tag || ''} onChange={e => setPackages(p => p.map((x, idx) => idx === i ? { ...x, tag: e.target.value } : x))} className="w-full text-sm border border-gray-200 rounded p-2 focus:outline-none mt-1" />
+                 <input type="text" value={pkg.tag || ''} onChange={e => setPackages(p => p.map((x, idx) => idx === i ? { ...x, tag: e.target.value } : x))} className="w-full text-sm border border-gray-300 rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-emerald-500 mt-1 text-gray-900 bg-white font-medium shadow-2xs" />
               </div>
             </div>
           ))}

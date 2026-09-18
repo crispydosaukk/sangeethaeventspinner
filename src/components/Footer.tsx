@@ -44,13 +44,13 @@ const Footer: React.FC = () => {
           <h4 className="text-xs uppercase tracking-widest text-emerald-400 font-bold">Connect &amp; Legal</h4>
           <ul className="space-y-2 text-sm">
             <li>
-              <a href="mailto:catering@sangeethaevents.co.uk" className="hover:text-emerald-300 transition-colors flex items-center gap-2">
-                <Icon name="EnvelopeIcon" size={14} /> catering@sangeethaevents.co.uk
+              <a href="mailto:Svrpinneruk@gmail.com" className="hover:text-emerald-300 transition-colors flex items-center gap-2">
+                <Icon name="EnvelopeIcon" size={14} /> Svrpinneruk@gmail.com
               </a>
             </li>
             <li>
-              <a href="tel:+442088667890" className="hover:text-emerald-300 transition-colors flex items-center gap-2">
-                <Icon name="PhoneIcon" size={14} /> +44 20 8866 7890 (Pinner)
+              <a href="tel:+447507271506" className="hover:text-emerald-300 transition-colors flex items-center gap-2">
+                <Icon name="PhoneIcon" size={14} /> +44 7507 271506
               </a>
             </li>
             <li>
