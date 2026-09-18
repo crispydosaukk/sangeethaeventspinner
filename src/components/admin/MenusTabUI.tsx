@@ -58,23 +58,211 @@ export default function MenusTabUI({
 
       {activeTab === 'packages' && (
         <div className="space-y-4">
+          <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-4 shadow-xs">
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <span>🎁 Active Packages ({packages.length})</span>
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Add, edit, rearrange or remove packages. Changes immediately sync to the website and direct booking forms upon saving.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const nextNum = packages.length + 1;
+                const newPkg = {
+                  id: `package_${Date.now()}`,
+                  name: `Package ${nextNum}`,
+                  pricePerPerson: 18,
+                  minGuests: 30,
+                  guestLabel: '(Minimum 30 Pax)',
+                  tag: 'Additional 20% VAT Tax',
+                  items: [
+                    '2 Starters',
+                    '2 Veg Mains',
+                    '1 Paneer Mains',
+                    '1 Rice Or Noodles',
+                    '1 Dessert',
+                    '1 Bread'
+                  ],
+                  complimentary: 'Accompaniments like Papad, Pickle, Salad & Raitha will be Complimentary.',
+                  color: '#ED1C24',
+                };
+                setPackages(prev => [...prev, newPkg]);
+              }}
+              className="flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl text-white shadow-sm hover:shadow-md transition-all cursor-pointer"
+              style={{ background: '#ED1C24' }}
+            >
+              <Icon name="PlusCircleIcon" size={16} />
+              <span>Add New Package</span>
+            </button>
+          </div>
+
+          {packages.length === 0 && (
+            <div className="bg-white rounded-xl border border-dashed border-gray-300 p-8 text-center">
+              <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-3">
+                <Icon name="SparklesIcon" size={24} />
+              </div>
+              <p className="text-sm font-medium text-gray-700">No packages configured.</p>
+              <p className="text-xs text-gray-400 mt-1 mb-4">Add your first package to display it on the website.</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setPackages([{
+                    id: `package_${Date.now()}`,
+                    name: 'Standard Package',
+                    pricePerPerson: 15,
+                    minGuests: 30,
+                    guestLabel: '(Minimum 30 Pax)',
+                    tag: 'Additional 20% VAT Tax',
+                    items: ['2 Starters', '1 Veg Mains', '1 Paneer Mains', '1 Rice Or Noodles', '1 Dessert', '1 Bread'],
+                    complimentary: 'Accompaniments like Papad, Pickle, Salad & Raitha will be Complimentary.',
+                    color: '#ED1C24',
+                  }]);
+                }}
+                className="text-xs font-bold px-4 py-2 rounded-xl text-white cursor-pointer"
+                style={{ background: '#ED1C24' }}
+              >
+                + Add First Package
+              </button>
+            </div>
+          )}
+
           {packages.map((pkg, i) => (
-            <div key={pkg.id || i} className="bg-white rounded-xl border border-gray-200 p-5">
-              <div className="flex justify-between items-center mb-3">
-                <input type="text" value={pkg.name} onChange={e => setPackages(p => p.map((x, idx) => idx === i ? { ...x, name: e.target.value } : x))} className="text-lg font-bold border border-gray-200 rounded-lg px-3 py-1.5 focus:border-emerald-500 focus:outline-none w-1/2 text-gray-900 bg-white shadow-2xs" />
-                <div className="flex items-center gap-1">
-                  <span className="text-gray-500">£</span>
-                  <input type="number" value={pkg.pricePerPerson} onChange={e => setPackages(p => p.map((x, idx) => idx === i ? { ...x, pricePerPerson: Number(e.target.value) } : x))} className="w-24 text-right border border-gray-200 rounded-lg px-2.5 py-1.5 focus:border-emerald-500 focus:outline-none font-bold text-emerald-700 bg-white shadow-2xs" />
-                  <span className="text-sm text-gray-500">/pp</span>
+            <div key={pkg.id || i} className="bg-white rounded-xl border border-gray-200 p-5 space-y-4 shadow-xs hover:border-gray-300 transition-colors">
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-gray-100">
+                <div className="flex items-center gap-2 flex-1 min-w-[240px]">
+                  <span className="text-xs font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-600">
+                    #{i + 1}
+                  </span>
+                  <input
+                    type="text"
+                    value={pkg.name || ''}
+                    placeholder="Package Name (e.g. Gold Package)"
+                    onChange={e => setPackages(p => p.map((x, idx) => idx === i ? { ...x, name: e.target.value } : x))}
+                    className="text-base font-bold border border-gray-200 rounded-lg px-3 py-1.5 focus:border-[#ED1C24] focus:outline-none flex-1 text-gray-900 bg-white shadow-2xs"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-semibold text-gray-500">£</span>
+                    <input
+                      type="number"
+                      value={pkg.pricePerPerson ?? ''}
+                      onChange={e => setPackages(p => p.map((x, idx) => idx === i ? { ...x, pricePerPerson: Number(e.target.value) } : x))}
+                      className="w-20 text-right border border-gray-200 rounded-lg px-2.5 py-1.5 focus:border-[#ED1C24] focus:outline-none font-bold text-gray-900 bg-white shadow-2xs text-sm"
+                    />
+                    <span className="text-xs text-gray-500 font-medium">/pp</span>
+                  </div>
+
+                  {/* Move Up */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (i === 0) return;
+                      setPackages(p => {
+                        const next = [...p];
+                        const temp = next[i - 1];
+                        next[i - 1] = next[i];
+                        next[i] = temp;
+                        return next;
+                      });
+                    }}
+                    disabled={i === 0}
+                    className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    title="Move Package Up"
+                  >
+                    <Icon name="ChevronUpIcon" size={16} />
+                  </button>
+
+                  {/* Move Down */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (i === packages.length - 1) return;
+                      setPackages(p => {
+                        const next = [...p];
+                        const temp = next[i + 1];
+                        next[i + 1] = next[i];
+                        next[i] = temp;
+                        return next;
+                      });
+                    }}
+                    disabled={i === packages.length - 1}
+                    className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    title="Move Package Down"
+                  >
+                    <Icon name="ChevronDownIcon" size={16} />
+                  </button>
+
+                  {/* Delete Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const confirmDelete = window.confirm(`Are you sure you want to remove "${pkg.name || `Package #${i + 1}`}"?`);
+                      if (confirmDelete) {
+                        setPackages(p => p.filter((_, idx) => idx !== i));
+                      }
+                    }}
+                    className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg text-red-600 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer"
+                    title="Delete Package"
+                  >
+                    <Icon name="TrashIcon" size={15} />
+                    <span className="hidden sm:inline">Delete</span>
+                  </button>
                 </div>
               </div>
-              <div className="mb-3">
-                 <label className="text-xs text-gray-500">Items Included (one per line)</label>
-                 <textarea rows={6} value={(pkg.items || []).join('\n')} onChange={e => setPackages(p => p.map((x, idx) => idx === i ? { ...x, items: e.target.value.split('\n') } : x))} className="w-full text-sm border border-gray-300 rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-emerald-500 mt-1 text-gray-900 bg-white font-medium shadow-2xs" />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="text-gray-500 font-medium block mb-1">Tag (e.g. Additional 20% VAT Tax, Best Value)</label>
+                  <input
+                    type="text"
+                    value={pkg.tag || ''}
+                    placeholder="e.g. Additional 20% VAT Tax"
+                    onChange={e => setPackages(p => p.map((x, idx) => idx === i ? { ...x, tag: e.target.value } : x))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#ED1C24] text-gray-900 bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-500 font-medium block mb-1">Guest Label (e.g. Minimum 30 Pax)</label>
+                  <input
+                    type="text"
+                    value={pkg.guestLabel || ''}
+                    placeholder="e.g. (Minimum 30 Pax)"
+                    onChange={e => setPackages(p => p.map((x, idx) => idx === i ? { ...x, guestLabel: e.target.value } : x))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#ED1C24] text-gray-900 bg-white"
+                  />
+                </div>
               </div>
+
               <div>
-                 <label className="text-xs text-gray-500">Tag (e.g. Additional 20% VAT Tax)</label>
-                 <input type="text" value={pkg.tag || ''} onChange={e => setPackages(p => p.map((x, idx) => idx === i ? { ...x, tag: e.target.value } : x))} className="w-full text-sm border border-gray-300 rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-emerald-500 mt-1 text-gray-900 bg-white font-medium shadow-2xs" />
+                <label className="text-xs text-gray-500 font-medium block mb-1">
+                  Courses & Items Included (Enter one course / item per line)
+                </label>
+                <textarea
+                  rows={5}
+                  placeholder="2 Starters&#10;1 Veg Mains&#10;1 Paneer Mains&#10;1 Rice Or Noodles&#10;1 Dessert&#10;1 Bread"
+                  value={Array.isArray(pkg.items) ? pkg.items.join('\n') : (typeof pkg.items === 'string' ? pkg.items : '')}
+                  onChange={e => {
+                    const lines = e.target.value.split('\n');
+                    setPackages(p => p.map((x, idx) => idx === i ? { ...x, items: lines } : x));
+                  }}
+                  className="w-full text-xs font-mono border border-gray-200 rounded-xl p-3 focus:outline-none focus:border-[#ED1C24] text-gray-900 bg-white shadow-2xs leading-relaxed"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-500 font-medium block mb-1">Complimentary Note (Optional)</label>
+                <input
+                  type="text"
+                  value={pkg.complimentary || ''}
+                  placeholder="e.g. Accompaniments like Papad, Pickle, Salad & Raitha will be Complimentary."
+                  onChange={e => setPackages(p => p.map((x, idx) => idx === i ? { ...x, complimentary: e.target.value } : x))}
+                  className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#ED1C24] text-gray-900 bg-white"
+                />
               </div>
             </div>
           ))}

@@ -518,8 +518,8 @@ export default function AdminPage() {
     });
     return () => unsubscribe();
   }, []);
-  const [calendarMonth, setCalendarMonth] = useState(4);
-  const [calendarYear] = useState(2026);
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date().getMonth());
+  const [calendarYear, setCalendarYear] = useState(() => new Date().getFullYear());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -2677,13 +2677,46 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
   const daysInMonth = getDaysInMonth(calendarYear, calendarMonth);
   const firstDay = getFirstDayOfMonth(calendarYear, calendarMonth);
   const calendarBookings = bookings.filter(b => {
+    if (!b.date || b.status === 'new_enquiry') return false;
+    const parts = b.date.split('-');
+    if (parts.length === 3) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      return y === calendarYear && m === calendarMonth;
+    }
     const d = new Date(b.date);
-    return d.getFullYear() === calendarYear && d.getMonth() === calendarMonth && b.status !== 'new_enquiry';
+    return !isNaN(d.getTime()) && d.getFullYear() === calendarYear && d.getMonth() === calendarMonth;
   });
 
   const getBookingsForDay = (day: number) => {
     const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return calendarBookings.filter(b => b.date === dateStr);
+  };
+
+  const handlePrevMonth = () => {
+    setCalendarMonth(m => {
+      if (m === 0) {
+        setCalendarYear(y => y - 1);
+        return 11;
+      }
+      return m - 1;
+    });
+  };
+
+  const handleNextMonth = () => {
+    setCalendarMonth(m => {
+      if (m === 11) {
+        setCalendarYear(y => y + 1);
+        return 0;
+      }
+      return m + 1;
+    });
+  };
+
+  const handleTodayMonth = () => {
+    const now = new Date();
+    setCalendarMonth(now.getMonth());
+    setCalendarYear(now.getFullYear());
   };
 
   const pendingDiscounts = bookings.filter(b => b.discountRequest?.status === 'pending');
@@ -3330,12 +3363,20 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
             <div className="space-y-4">
               <div className="bg-white rounded-xl border border-gray-200 p-4">
                 <div className="flex items-center justify-between mb-4">
-                  <button onClick={() => setCalendarMonth(m => m === 0 ? 11 : m - 1)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                    <Icon name="ChevronLeftIcon" size={18} className="text-gray-500" />
-                  </button>
-                  <h2 className="font-semibold text-gray-900">{MONTHS[calendarMonth]} {calendarYear}</h2>
-                  <button onClick={() => setCalendarMonth(m => m === 11 ? 0 : m + 1)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                    <Icon name="ChevronRightIcon" size={18} className="text-gray-500" />
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <button onClick={handlePrevMonth} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Previous month">
+                      <Icon name="ChevronLeftIcon" size={18} className="text-gray-500" />
+                    </button>
+                    <h2 className="font-semibold text-gray-900 text-base">{MONTHS[calendarMonth]} {calendarYear}</h2>
+                    <button onClick={handleNextMonth} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Next month">
+                      <Icon name="ChevronRightIcon" size={18} className="text-gray-500" />
+                    </button>
+                  </div>
+                  <button
+                    onClick={handleTodayMonth}
+                    className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    Today
                   </button>
                 </div>
                 <div className="grid grid-cols-7 mb-2">
@@ -3348,10 +3389,12 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                     const dayBookings = getBookingsForDay(day);
                     const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                     const isBlocked = blockedDates.includes(dateStr);
+                    const now = new Date();
+                    const isToday = now.getFullYear() === calendarYear && now.getMonth() === calendarMonth && now.getDate() === day;
                     return (
-                      <div key={day} className={`h-20 rounded-lg border p-1.5 transition-colors ${isBlocked ? 'bg-red-50/40 border-red-100 hover:bg-red-50' : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'}`}>
+                      <div key={day} className={`h-20 rounded-lg border p-1.5 transition-colors ${isToday ? 'border-[#ED1C24] bg-red-50/30 ring-1 ring-[#ED1C24]' : isBlocked ? 'bg-red-50/40 border-red-100 hover:bg-red-50' : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'}`}>
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-semibold text-gray-500">{day}</span>
+                          <span className={`text-xs font-semibold ${isToday ? 'text-[#ED1C24] font-bold' : 'text-gray-500'}`}>{day}</span>
                           {isBlocked && <span className="text-[9px] font-bold text-red-500 uppercase tracking-wider flex items-center gap-0.5">🚫 Block</span>}
                         </div>
                         <div className="space-y-0.5 overflow-hidden">
