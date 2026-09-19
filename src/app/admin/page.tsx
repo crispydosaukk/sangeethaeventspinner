@@ -7,6 +7,12 @@ import AccessControl from '@/components/admin/AccessControl';
 import MenusTabUI from '@/components/admin/MenusTabUI';
 import ManualBookingForm from '@/components/admin/ManualBookingForm';
 import WebsiteContentUI from '@/components/admin/WebsiteContentUI';
+import {
+  EmailRecipient,
+  EmailNotificationConfig,
+  DEFAULT_EMAIL_NOTIFICATION_CONFIG,
+  sanitizeEmailNotificationConfig,
+} from '@/app/data/emailNotificationConfig';
 
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, db, storage } from '@/lib/firebase';
@@ -561,9 +567,9 @@ export default function AdminPage() {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setBankDetails({
-          accountName: data.accountName || 'PINNER TIFFINS LTD',
-          sortCode: data.sortCode || '404609',
-          accountNumber: data.accountNumber || '62213532'
+          accountName: data.accountName !== undefined ? data.accountName : 'PINNER TIFFINS LTD',
+          sortCode: data.sortCode !== undefined ? data.sortCode : '404609',
+          accountNumber: data.accountNumber !== undefined ? data.accountNumber : '62213532'
         });
       }
     }, (err) => console.warn('Admin bank_details notice:', err.message));
@@ -583,12 +589,12 @@ export default function AdminPage() {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setVenueDetails({
-          venueName: data.venueName || 'Sangeetha Events Pinner',
-          minGuests: data.minGuests || '30',
-          contactEmail: data.contactEmail || 'Svrpinneruk@gmail.com',
-          phone: data.phone || '+44 7507 271506',
-          whatsapp: data.whatsapp || '+447507271506',
-          address: data.address || '123 Event Plaza, London, UK'
+          venueName: data.venueName !== undefined ? data.venueName : 'Sangeetha Events Pinner',
+          minGuests: data.minGuests !== undefined ? data.minGuests : '30',
+          contactEmail: data.contactEmail !== undefined ? data.contactEmail : 'Svrpinneruk@gmail.com',
+          phone: data.phone !== undefined ? data.phone : '+44 7507 271506',
+          whatsapp: data.whatsapp !== undefined ? data.whatsapp : '+447507271506',
+          address: data.address !== undefined ? data.address : '123 Event Plaza, London, UK'
         });
       }
     }, (err) => console.warn('Admin venue_details notice:', err.message));
@@ -686,9 +692,9 @@ export default function AdminPage() {
         const data = docSnap.data();
         setPricingDetails({
           depositPercentage: data.depositPercentage !== undefined ? data.depositPercentage : 30,
-          minimumBookingHours: data.minimumBookingHours || 4,
-          weekdayRate: data.weekdayRate || 350,
-          weekendRate: data.weekendRate || 550
+          minimumBookingHours: data.minimumBookingHours !== undefined ? data.minimumBookingHours : 4,
+          weekdayRate: data.weekdayRate !== undefined ? data.weekdayRate : 350,
+          weekendRate: data.weekendRate !== undefined ? data.weekendRate : 550
         });
       }
     }, (err) => console.warn('Admin pricing_details notice:', err.message));
@@ -703,11 +709,20 @@ export default function AdminPage() {
   const [newPartyHallTimeSlot, setNewPartyHallTimeSlot] = useState('');
   const [newOutdoorTimeSlot, setNewOutdoorTimeSlot] = useState('');
 
+  // Dynamic Email Notification State (Recipients, SMTP Settings, Test Dispatch)
+  const [emailConfig, setEmailConfig] = useState<EmailNotificationConfig>(DEFAULT_EMAIL_NOTIFICATION_CONFIG);
+  const [editableEmailConfig, setEditableEmailConfig] = useState<EmailNotificationConfig>(DEFAULT_EMAIL_NOTIFICATION_CONFIG);
+  const [isSavingEmailConfig, setIsSavingEmailConfig] = useState(false);
+  const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
+  const [newRecipientInput, setNewRecipientInput] = useState({ email: '', name: '' });
+  const [testRecipientEmail, setTestRecipientEmail] = useState('rahulbadugu22@gmail.com');
+  const [showSmtpPassword, setShowSmtpPassword] = useState(false);
+
+  // Backwards compatibility state for any legacy readers
   const [notificationSettings, setNotificationSettings] = useState({
     enabled: true,
     emails: 'rahulbadugu22@gmail.com, Svrpinneruk@gmail.com, Digitalbotsolutions@gmail.com'
   });
-  const [isSavingNotificationSettings, setIsSavingNotificationSettings] = useState(false);
 
   useEffect(() => {
     return onSnapshot(doc(db, 'site_data', 'form_settings'), (docSnap) => {
@@ -723,15 +738,30 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    return onSnapshot(doc(db, 'site_data', 'notification_settings'), (docSnap) => {
+    return onSnapshot(doc(db, 'site_data', 'email_settings'), (docSnap) => {
       if (docSnap.exists()) {
-        const data = docSnap.data();
+        const sanitized = sanitizeEmailNotificationConfig(docSnap.data());
+        setEmailConfig(sanitized);
+        setEditableEmailConfig(sanitized);
         setNotificationSettings({
-          enabled: data.enabled !== undefined ? data.enabled : true,
-          emails: data.emails || 'rahulbadugu22@gmail.com, Svrpinneruk@gmail.com, Digitalbotsolutions@gmail.com'
+          enabled: sanitized.enabled,
+          emails: sanitized.recipients.filter(r => r.enabled).map(r => r.email).join(', '),
         });
+      } else {
+        // Fallback check on legacy notification_settings
+        getDoc(doc(db, 'site_data', 'notification_settings')).then((legacySnap) => {
+          if (legacySnap.exists()) {
+            const legacySanitized = sanitizeEmailNotificationConfig(legacySnap.data());
+            setEmailConfig(legacySanitized);
+            setEditableEmailConfig(legacySanitized);
+            setNotificationSettings({
+              enabled: legacySanitized.enabled,
+              emails: legacySanitized.recipients.filter(r => r.enabled).map(r => r.email).join(', '),
+            });
+          }
+        }).catch(() => {});
       }
-    }, (err) => console.warn('Admin notification_settings notice:', err.message));
+    });
   }, []);
 
   // ─── REAL MENU EDITABLE STATE ─────────────────────────────────────────────
@@ -1692,14 +1722,23 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
     }
   };
 
-  const updateBankDetail = async (field: string, value: string) => {
-    const updated = { ...bankDetails, [field]: value };
-    setBankDetails(updated);
+  const [isSavingBankDetails, setIsSavingBankDetails] = useState(false);
+
+  const saveBankDetails = async () => {
+    setIsSavingBankDetails(true);
     try {
-      await setDoc(doc(db, 'site_data', 'bank_details'), updated, { merge: true });
+      await setDoc(doc(db, 'site_data', 'bank_details'), bankDetails, { merge: true });
+      setCustomAlert({ message: 'Bank details successfully updated!', type: 'success' });
     } catch (error) {
       console.error('Error saving bank details:', error);
+      setCustomAlert({ message: 'Error saving bank details.', type: 'error' });
+    } finally {
+      setIsSavingBankDetails(false);
     }
+  };
+
+  const updateBankDetail = (field: string, value: string) => {
+    setBankDetails(prev => ({ ...prev, [field]: value }));
   };
 
   const [isSavingVenueDetails, setIsSavingVenueDetails] = useState(false);
@@ -1722,7 +1761,13 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
   const savePricingDetails = async () => {
     setIsSavingPricingDetails(true);
     try {
-      await setDoc(doc(db, 'site_data', 'pricing_details'), pricingDetails, { merge: true });
+      const payload = {
+        depositPercentage: Number(pricingDetails.depositPercentage) || 0,
+        minimumBookingHours: Number(pricingDetails.minimumBookingHours) || 0,
+        weekdayRate: Number(pricingDetails.weekdayRate) || 0,
+        weekendRate: Number(pricingDetails.weekendRate) || 0,
+      };
+      await setDoc(doc(db, 'site_data', 'pricing_details'), payload, { merge: true });
       setCustomAlert({ message: 'Pricing & Deposits successfully updated!', type: 'success' });
     } catch (error) {
       console.error('Error saving pricing details:', error);
@@ -1732,16 +1777,118 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
     }
   };
 
-  const saveNotificationSettings = async () => {
-    setIsSavingNotificationSettings(true);
-    try {
-      await setDoc(doc(db, 'site_data', 'notification_settings'), notificationSettings, { merge: true });
-      setCustomAlert({ message: 'Notification settings saved successfully.', type: 'success' });
-    } catch (error: any) {
-      setCustomAlert({ message: 'Error saving notification settings: ' + error.message, type: 'error' });
+  const handleAddRecipient = () => {
+    const email = newRecipientInput.email.trim().toLowerCase();
+    if (!email || !email.includes('@')) {
+      setCustomAlert({ message: 'Please enter a valid recipient email address.', type: 'error' });
+      return;
     }
-    setIsSavingNotificationSettings(false);
+    if (editableEmailConfig.recipients.some(r => r.email.toLowerCase() === email)) {
+      setCustomAlert({ message: 'This email address is already in the recipient list.', type: 'error' });
+      return;
+    }
+    const newRec: EmailRecipient = {
+      id: `recipient-${Date.now()}`,
+      email,
+      name: newRecipientInput.name.trim() || 'Admin Recipient',
+      enabled: true,
+    };
+    setEditableEmailConfig(prev => ({
+      ...prev,
+      recipients: [...prev.recipients, newRec],
+    }));
+    setNewRecipientInput({ email: '', name: '' });
+    setCustomAlert({ message: `Added ${email} to recipients. Click "Save Email Settings" to persist.`, type: 'success' });
   };
+
+  const handleToggleRecipient = (id: string) => {
+    setEditableEmailConfig(prev => ({
+      ...prev,
+      recipients: prev.recipients.map(r => r.id === id ? { ...r, enabled: !r.enabled } : r),
+    }));
+  };
+
+  const handleDeleteRecipient = (id: string) => {
+    setEditableEmailConfig(prev => ({
+      ...prev,
+      recipients: prev.recipients.filter(r => r.id !== id),
+    }));
+    setCustomAlert({ message: 'Recipient removed. Click "Save Email Settings" to persist changes.', type: 'success' });
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!editableEmailConfig.smtp.user || !editableEmailConfig.smtp.pass) {
+      setCustomAlert({
+        message: 'Please enter your SMTP Username and Password before sending a test email.',
+        type: 'error',
+      });
+      return;
+    }
+    const targetRecipient = testRecipientEmail || editableEmailConfig.recipients.find(r => r.enabled)?.email || 'rahulbadugu22@gmail.com';
+    setIsSendingTestEmail(true);
+    try {
+      const res = await fetch('/api/send-test-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          smtp: editableEmailConfig.smtp,
+          testRecipient: targetRecipient,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCustomAlert({
+          message: data.message || `Test email successfully sent to ${targetRecipient}!`,
+          type: 'success',
+        });
+      } else {
+        setCustomAlert({
+          message: data.error || 'Failed to send test email. Check your SMTP credentials.',
+          type: 'error',
+        });
+      }
+    } catch (e: any) {
+      setCustomAlert({
+        message: 'Network error sending test email: ' + (e?.message || e),
+        type: 'error',
+      });
+    } finally {
+      setIsSendingTestEmail(false);
+    }
+  };
+
+  const saveEmailSettings = async () => {
+    setIsSavingEmailConfig(true);
+    try {
+      const sanitized = sanitizeEmailNotificationConfig(editableEmailConfig);
+      sanitized.updatedAt = new Date().toISOString();
+      await setDoc(doc(db, 'site_data', 'email_settings'), sanitized, { merge: true });
+
+      // Keep legacy site_data/notification_settings synchronized
+      const activeEmails = sanitized.recipients.filter(r => r.enabled).map(r => r.email).join(', ');
+      await setDoc(doc(db, 'site_data', 'notification_settings'), {
+        enabled: sanitized.enabled,
+        emails: activeEmails,
+      }, { merge: true });
+
+      setEmailConfig(sanitized);
+      setEditableEmailConfig(sanitized);
+      setCustomAlert({
+        message: 'Email notification settings saved successfully! Automated enquiry emails will dispatch to all active recipients.',
+        type: 'success',
+      });
+    } catch (err: any) {
+      console.error('Error saving email settings:', err);
+      setCustomAlert({
+        message: 'Failed to save email settings: ' + (err?.message || err),
+        type: 'error',
+      });
+    } finally {
+      setIsSavingEmailConfig(false);
+    }
+  };
+
+  const saveNotificationSettings = saveEmailSettings;
 
   const saveFormSettings = async () => {
     setIsSavingFormSettings(true);
@@ -3833,25 +3980,45 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                       <label className="text-sm text-gray-600">Deposit Amount</label>
                       <div className="flex items-center gap-1">
                         <span className="text-gray-500 text-sm">£</span>
-                        <input type="number" value={pricingDetails.depositPercentage} onChange={e => setPricingDetails(p => ({ ...p, depositPercentage: Number(e.target.value) }))} className="w-24 border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-right focus:outline-none bg-gray-50" />
+                        <input
+                          type="number"
+                          value={pricingDetails.depositPercentage || ''}
+                          onChange={e => setPricingDetails(p => ({ ...p, depositPercentage: e.target.value === '' ? 0 : Number(e.target.value) }))}
+                          className="w-24 border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-right focus:outline-none bg-gray-50"
+                        />
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
                       <label className="text-sm text-gray-600">Minimum Booking Hours</label>
-                      <input type="number" value={pricingDetails.minimumBookingHours} onChange={e => setPricingDetails(p => ({ ...p, minimumBookingHours: Number(e.target.value) }))} className="w-28 border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-right focus:outline-none bg-gray-50" />
+                      <input
+                        type="number"
+                        value={pricingDetails.minimumBookingHours || ''}
+                        onChange={e => setPricingDetails(p => ({ ...p, minimumBookingHours: e.target.value === '' ? 0 : Number(e.target.value) }))}
+                        className="w-28 border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-right focus:outline-none bg-gray-50"
+                      />
                     </div>
                     <div className="flex items-center justify-between">
                       <label className="text-sm text-gray-600">Weekday Rate (per hour)</label>
                       <div className="flex items-center gap-1">
                         <span className="text-gray-500 text-sm">£</span>
-                        <input type="number" value={pricingDetails.weekdayRate} onChange={e => setPricingDetails(p => ({ ...p, weekdayRate: Number(e.target.value) }))} className="w-24 border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-right focus:outline-none bg-gray-50" />
+                        <input
+                          type="number"
+                          value={pricingDetails.weekdayRate || ''}
+                          onChange={e => setPricingDetails(p => ({ ...p, weekdayRate: e.target.value === '' ? 0 : Number(e.target.value) }))}
+                          className="w-24 border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-right focus:outline-none bg-gray-50"
+                        />
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
                       <label className="text-sm text-gray-600">Weekend Rate (per hour)</label>
                       <div className="flex items-center gap-1">
                         <span className="text-gray-500 text-sm">£</span>
-                        <input type="number" value={pricingDetails.weekendRate} onChange={e => setPricingDetails(p => ({ ...p, weekendRate: Number(e.target.value) }))} className="w-24 border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-right focus:outline-none bg-gray-50" />
+                        <input
+                          type="number"
+                          value={pricingDetails.weekendRate || ''}
+                          onChange={e => setPricingDetails(p => ({ ...p, weekendRate: e.target.value === '' ? 0 : Number(e.target.value) }))}
+                          className="w-24 border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-right focus:outline-none bg-gray-50"
+                        />
                       </div>
                     </div>
                     <button
@@ -3877,16 +4044,42 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                   <div className="space-y-3.5">
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Account Name</label>
-                      <input type="text" value={bankDetails.accountName} onChange={(e) => updateBankDetail('accountName', e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none bg-gray-50" />
+                      <input
+                        type="text"
+                        value={bankDetails.accountName}
+                        onChange={(e) => setBankDetails(prev => ({ ...prev, accountName: e.target.value }))}
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none bg-gray-50"
+                        placeholder="e.g. PINNER TIFFINS LTD"
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Sort Code</label>
-                      <input type="text" value={bankDetails.sortCode} onChange={(e) => updateBankDetail('sortCode', e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none bg-gray-50" />
+                      <input
+                        type="text"
+                        value={bankDetails.sortCode}
+                        onChange={(e) => setBankDetails(prev => ({ ...prev, sortCode: e.target.value }))}
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none bg-gray-50"
+                        placeholder="e.g. 40-46-09"
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Account Number</label>
-                      <input type="text" value={bankDetails.accountNumber} onChange={(e) => updateBankDetail('accountNumber', e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none bg-gray-50" />
+                      <input
+                        type="text"
+                        value={bankDetails.accountNumber}
+                        onChange={(e) => setBankDetails(prev => ({ ...prev, accountNumber: e.target.value }))}
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none bg-gray-50"
+                        placeholder="e.g. 62213532"
+                      />
                     </div>
+                    <button
+                      onClick={saveBankDetails}
+                      disabled={isSavingBankDetails}
+                      className="text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-all mt-2 shadow-md active:scale-95 disabled:opacity-50 w-full"
+                      style={{ background: 'linear-gradient(135deg, #C62127 0%, #B71C1C 40%, #06874D 100%)' }}
+                    >
+                      {isSavingBankDetails ? 'Saving...' : 'Save Bank Details'}
+                    </button>
                   </div>
                 </div>
 
@@ -3994,48 +4187,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                   </div>
                 </div>
 
-                <div className="bg-white rounded-xl border border-gray-200 p-5 mt-6">
-                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <Icon name="EnvelopeIcon" size={18} style={{ color: '#ED1C24' }} />
-                    Email Notification Settings
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-900">Receive Emails</label>
-                        <p className="text-xs text-gray-500">Toggle whether you want to receive emails for new bookings.</p>
-                      </div>
-                      <button
-                        onClick={() => setNotificationSettings({ ...notificationSettings, enabled: !notificationSettings.enabled })}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notificationSettings.enabled ? 'bg-emerald-500' : 'bg-gray-300'}`}
-                      >
-                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notificationSettings.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                      </button>
-                    </div>
 
-                    {notificationSettings.enabled && (
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Recipient Emails</label>
-                        <textarea
-                          value={notificationSettings.emails}
-                          onChange={(e) => setNotificationSettings({ ...notificationSettings, emails: e.target.value })}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none bg-gray-50 min-h-[80px]"
-                          placeholder="Comma-separated emails..."
-                        />
-                        <p className="text-[10px] text-gray-400 mt-1">Separate multiple email addresses with a comma.</p>
-                      </div>
-                    )}
-
-                    <button
-                      onClick={saveNotificationSettings}
-                      disabled={isSavingNotificationSettings}
-                      className="text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-all mt-2 shadow-md active:scale-95 disabled:opacity-50 w-full"
-                      style={{ background: 'linear-gradient(135deg, #C62127 0%, #B71C1C 40%, #06874D 100%)' }}
-                    >
-                      {isSavingNotificationSettings ? 'Saving...' : 'Save Notification Settings'}
-                    </button>
-                  </div>
-                </div>
 
                 <div className="bg-white rounded-xl border border-gray-200 p-5 mt-6">
                   <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
@@ -4056,6 +4208,366 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                     {blockedDates.length === 0 && (
                       <span className="text-xs text-gray-400 italic">No blocked dates</span>
                     )}
+                  </div>
+                </div>
+              </div>
+
+              {/* ─── FULL WIDTH DYNAMIC EMAIL NOTIFICATION SYSTEM ─── */}
+              <div className="lg:col-span-2 space-y-6">
+                <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-6">
+                  {/* Top Header & Master Toggle */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-5">
+                    <div className="flex items-start gap-3.5">
+                      <div className="w-11 h-11 rounded-xl bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0">
+                        <Icon name="EnvelopeIcon" size={22} style={{ color: '#C62127' }} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <h3 className="text-base font-bold text-gray-900">
+                            Automated Enquiry Email Notifications
+                          </h3>
+                          <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                            editableEmailConfig.enabled ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                          }`}>
+                            {editableEmailConfig.enabled ? '● Active (Sending ON)' : '○ Disabled (Sending OFF)'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {editableEmailConfig.enabled
+                            ? 'Whenever a customer submits a booking enquiry on the website, formatted notification emails are automatically dispatched.'
+                            : 'Enquiry email dispatch is currently turned OFF. Enquiries will only be recorded into the Admin Dashboard.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setEditableEmailConfig(prev => ({ ...prev, enabled: !prev.enabled }))}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer flex-shrink-0 ${
+                        editableEmailConfig.enabled
+                          ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                          : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                      }`}
+                    >
+                      <Icon name={editableEmailConfig.enabled ? 'EyeSlashIcon' : 'EyeIcon'} size={15} />
+                      <span>{editableEmailConfig.enabled ? 'Turn OFF Email Dispatch' : 'Turn ON Email Dispatch'}</span>
+                    </button>
+                  </div>
+
+                  {/* Recipients Manager Card */}
+                  <div className="bg-gray-50/70 rounded-xl border border-gray-200 p-4 sm:p-5 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200/70 pb-3">
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                          <Icon name="UserGroupIcon" size={17} style={{ color: '#C62127' }} />
+                          Notification Recipient Inboxes
+                        </h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Specify which email addresses receive instant alerts with full booking details upon submission.
+                        </p>
+                      </div>
+                      <span className="text-xs font-bold px-3 py-1 rounded-full bg-red-100 text-red-800 self-start sm:self-auto">
+                        {editableEmailConfig.recipients.filter(r => r.enabled).length} Active Recipient(s)
+                      </span>
+                    </div>
+
+                    {/* Recipients List */}
+                    <div className="space-y-2.5">
+                      {editableEmailConfig.recipients.map((rec) => (
+                        <div
+                          key={rec.id}
+                          className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${
+                            rec.enabled
+                              ? 'border-gray-200 bg-white shadow-xs'
+                              : 'border-gray-200 bg-gray-100/60 opacity-60'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-red-100 text-red-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                              ✉️
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-gray-900">{rec.name || 'Recipient'}</span>
+                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                                  rec.enabled ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-600'
+                                }`}>
+                                  {rec.enabled ? 'Active' : 'Disabled'}
+                                </span>
+                              </div>
+                              <p className="text-xs font-mono text-gray-600 mt-0.5">{rec.email}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 self-end sm:self-auto">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleRecipient(rec.id)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                                rec.enabled
+                                  ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                  : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                              }`}
+                              title={rec.enabled ? 'Click to disable notifications for this inbox' : 'Click to enable notifications'}
+                            >
+                              <Icon name={rec.enabled ? 'EyeIcon' : 'EyeSlashIcon'} size={14} />
+                              <span>{rec.enabled ? 'Active' : 'Disabled'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (editableEmailConfig.recipients.length <= 1) {
+                                  setCustomAlert({ message: 'At least one recipient inbox must remain configured.', type: 'error' });
+                                  return;
+                                }
+                                handleDeleteRecipient(rec.id);
+                              }}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                              title="Delete recipient"
+                            >
+                              <Icon name="TrashIcon" size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Add Recipient Form */}
+                    <div className="bg-white border border-red-200/70 rounded-xl p-4 mt-3">
+                      <h5 className="text-xs font-bold text-red-950 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                        <Icon name="PlusIcon" size={14} />
+                        Add New Notification Inbox
+                      </h5>
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+                        <div className="sm:col-span-4">
+                          <input
+                            type="text"
+                            placeholder="Recipient Label (e.g. Operations)"
+                            value={newRecipientInput.name}
+                            onChange={(e) => setNewRecipientInput(prev => ({ ...prev, name: e.target.value }))}
+                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-red-500 focus:outline-none bg-gray-50"
+                          />
+                        </div>
+                        <div className="sm:col-span-6">
+                          <input
+                            type="email"
+                            placeholder="Email address (e.g. svrpinneruk@gmail.com)"
+                            value={newRecipientInput.email}
+                            onChange={(e) => setNewRecipientInput(prev => ({ ...prev, email: e.target.value }))}
+                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-red-500 focus:outline-none bg-gray-50"
+                          />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <button
+                            type="button"
+                            onClick={handleAddRecipient}
+                            className="w-full py-2 px-3 rounded-xl text-xs font-bold text-white transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                            style={{ background: 'linear-gradient(135deg, #C62127 0%, #B71C1C 40%, #06874D 100%)' }}
+                          >
+                            <Icon name="PlusIcon" size={14} />
+                            <span>Add</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SMTP Server Configuration */}
+                  <div className="bg-gray-50/70 rounded-xl border border-gray-200 p-4 sm:p-5 space-y-4">
+                    <div className="border-b border-gray-200/70 pb-3">
+                      <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                        <Icon name="ServerIcon" size={17} style={{ color: '#C62127' }} />
+                        Outgoing Mail Server (SMTP) Settings
+                      </h4>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Pre-configured with Zingbite UK Gmail SMTP service for high deliverability.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">SMTP Host</label>
+                        <input
+                          type="text"
+                          value={editableEmailConfig.smtp.host}
+                          onChange={(e) => setEditableEmailConfig(prev => ({
+                            ...prev,
+                            smtp: { ...prev.smtp, host: e.target.value }
+                          }))}
+                          className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-xs font-mono text-gray-900 focus:ring-2 focus:ring-red-500 focus:outline-none bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">SMTP Port</label>
+                        <input
+                          type="number"
+                          value={editableEmailConfig.smtp.port}
+                          onChange={(e) => setEditableEmailConfig(prev => ({
+                            ...prev,
+                            smtp: { ...prev.smtp, port: Number(e.target.value) }
+                          }))}
+                          className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-xs font-mono text-gray-900 focus:ring-2 focus:ring-red-500 focus:outline-none bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">SMTP Username / Email</label>
+                        <input
+                          type="text"
+                          value={editableEmailConfig.smtp.user}
+                          onChange={(e) => setEditableEmailConfig(prev => ({
+                            ...prev,
+                            smtp: { ...prev.smtp, user: e.target.value }
+                          }))}
+                          className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-xs font-mono text-gray-900 focus:ring-2 focus:ring-red-500 focus:outline-none bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-semibold text-gray-700">App Password</label>
+                          <button
+                            type="button"
+                            onClick={() => setShowSmtpPassword(!showSmtpPassword)}
+                            className="text-[11px] text-red-600 hover:text-red-700 font-medium"
+                          >
+                            {showSmtpPassword ? 'Hide' : 'Show'}
+                          </button>
+                        </div>
+                        <input
+                          type={showSmtpPassword ? 'text' : 'password'}
+                          value={editableEmailConfig.smtp.pass}
+                          onChange={(e) => setEditableEmailConfig(prev => ({
+                            ...prev,
+                            smtp: { ...prev.smtp, pass: e.target.value }
+                          }))}
+                          className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-xs font-mono text-gray-900 focus:ring-2 focus:ring-red-500 focus:outline-none bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">From / Sender Name</label>
+                        <input
+                          type="text"
+                          value={editableEmailConfig.smtp.fromName}
+                          onChange={(e) => setEditableEmailConfig(prev => ({
+                            ...prev,
+                            smtp: { ...prev.smtp, fromName: e.target.value }
+                          }))}
+                          className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-xs font-medium text-gray-900 focus:ring-2 focus:ring-red-500 focus:outline-none bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">From / Reply-To Email</label>
+                        <input
+                          type="email"
+                          value={editableEmailConfig.smtp.fromEmail}
+                          onChange={(e) => setEditableEmailConfig(prev => ({
+                            ...prev,
+                            smtp: { ...prev.smtp, fromEmail: e.target.value }
+                          }))}
+                          className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-xs font-mono text-gray-900 focus:ring-2 focus:ring-red-500 focus:outline-none bg-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Customer Confirmation & Test Email */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Customer Confirmation Card */}
+                    <div className="bg-gray-50/70 rounded-xl border border-gray-200 p-5 flex flex-col justify-between">
+                      <div>
+                        <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1 flex items-center gap-1.5">
+                          <span>💌</span> Customer Acknowledgement Receipt
+                        </h4>
+                        <p className="text-xs text-gray-500 mb-4">
+                          Automatically send a confirmation receipt email to the customer who submitted the enquiry form.
+                        </p>
+                      </div>
+
+                      <label className="flex items-center gap-3 cursor-pointer select-none bg-white border border-gray-200 rounded-xl p-3">
+                        <input
+                          type="checkbox"
+                          checked={editableEmailConfig.sendCustomerConfirmation}
+                          onChange={(e) => setEditableEmailConfig(prev => ({
+                            ...prev,
+                            sendCustomerConfirmation: e.target.checked
+                          }))}
+                          className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
+                        />
+                        <span className="text-xs font-bold text-gray-800">
+                          {editableEmailConfig.sendCustomerConfirmation
+                            ? 'Send customer confirmation receipt (Enabled)'
+                            : 'Do not email customer (Disabled)'}
+                        </span>
+                      </label>
+                    </div>
+
+                    {/* Test Email Dispatch Card */}
+                    <div className="bg-gray-50/70 rounded-xl border border-gray-200 p-5 flex flex-col justify-between space-y-3">
+                      <div>
+                        <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1 flex items-center gap-1.5">
+                          <span>🧪</span> Send Test Email
+                        </h4>
+                        <p className="text-xs text-gray-500">
+                          Verify your SMTP mail server settings and recipient connectivity immediately.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <input
+                          type="email"
+                          placeholder="Enter test recipient email..."
+                          value={testRecipientEmail}
+                          onChange={(e) => setTestRecipientEmail(e.target.value)}
+                          className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-xs font-mono text-gray-900 focus:ring-2 focus:ring-red-500 focus:outline-none bg-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSendTestEmail}
+                          disabled={isSendingTestEmail}
+                          className="w-full py-2 px-4 rounded-xl text-xs font-bold text-white transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer bg-gray-900 hover:bg-gray-800"
+                        >
+                          {isSendingTestEmail ? (
+                            <>
+                              <span className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" />
+                              <span>Connecting &amp; Sending...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Icon name="PaperAirplaneIcon" size={14} />
+                              <span>Dispatch Test Email</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Save All Email Settings */}
+                  <div className="flex justify-end pt-2 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={saveEmailSettings}
+                      disabled={isSavingEmailConfig}
+                      className="px-6 py-3 rounded-xl text-xs font-bold text-white shadow-md active:scale-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer transition-all hover:brightness-105"
+                      style={{ background: 'linear-gradient(135deg, #C62127 0%, #B71C1C 40%, #06874D 100%)' }}
+                    >
+                      {isSavingEmailConfig ? (
+                        <>
+                          <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
+                          <span>Saving Email Settings...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Icon name="CheckIcon" size={16} />
+                          <span>Save Email Settings</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
               </div>

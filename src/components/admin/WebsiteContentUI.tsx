@@ -27,6 +27,14 @@ export default function WebsiteContentUI({ onNotify }: WebsiteContentUIProps) {
   const [faqs, setFaqs] = useState<FaqItem[]>(DEFAULT_FAQS);
   const [isSavingFaqs, setIsSavingFaqs] = useState(false);
 
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    isDanger?: boolean;
+    onConfirm: () => void;
+  } | null>(null);
+
   // Load from Firestore
   useEffect(() => {
     const unsubHero = onSnapshot(
@@ -151,21 +159,42 @@ export default function WebsiteContentUI({ onNotify }: WebsiteContentUIProps) {
   };
 
   const handleDeleteFaq = (idx: number) => {
-    if (confirm('Are you sure you want to delete this FAQ item?')) {
-      setFaqs((prev) => prev.filter((_, i) => i !== idx));
-    }
+    setConfirmModal({
+      title: 'Delete FAQ Item',
+      message: 'Are you sure you want to delete this FAQ item?',
+      confirmLabel: 'Delete',
+      isDanger: true,
+      onConfirm: () => {
+        setFaqs((prev) => prev.filter((_, i) => i !== idx));
+        setConfirmModal(null);
+      },
+    });
   };
 
   const handleResetFaqs = () => {
-    if (confirm('Reset all FAQs back to default initial values?')) {
-      setFaqs(DEFAULT_FAQS);
-    }
+    setConfirmModal({
+      title: 'Reset All FAQs',
+      message: 'Are you sure you want to reset all FAQs back to their default initial values?',
+      confirmLabel: 'Reset Defaults',
+      isDanger: true,
+      onConfirm: () => {
+        setFaqs(DEFAULT_FAQS);
+        setConfirmModal(null);
+      },
+    });
   };
 
   const handleResetHero = () => {
-    if (confirm('Reset hero content back to default values?')) {
-      setHero(DEFAULT_HERO_CONTENT);
-    }
+    setConfirmModal({
+      title: 'Reset Hero Content',
+      message: 'Are you sure you want to reset hero content back to default values?',
+      confirmLabel: 'Reset Defaults',
+      isDanger: true,
+      onConfirm: () => {
+        setHero(DEFAULT_HERO_CONTENT);
+        setConfirmModal(null);
+      },
+    });
   };
 
   return (
@@ -582,6 +611,37 @@ export default function WebsiteContentUI({ onNotify }: WebsiteContentUIProps) {
                 </>
               )}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── CENTERED CONFIRMATION MODAL ─── */}
+      {confirmModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm border border-gray-100 flex flex-col items-center text-center">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${confirmModal.isDanger ? 'bg-rose-50 text-rose-500' : 'bg-amber-50 text-amber-500'}`}>
+              <Icon name={confirmModal.isDanger ? 'TrashIcon' : 'ArrowPathIcon'} size={24} />
+            </div>
+            <h3 className="text-base font-bold text-gray-900 mb-1">{confirmModal.title}</h3>
+            <p className="text-sm text-gray-500 mb-6">{confirmModal.message}</p>
+            <div className="flex gap-3 w-full">
+              <button
+                type="button"
+                onClick={() => setConfirmModal(null)}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmModal.onConfirm}
+                className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors shadow-sm cursor-pointer ${
+                  confirmModal.isDanger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-amber-600 hover:bg-amber-700'
+                }`}
+              >
+                {confirmModal.confirmLabel || 'Confirm'}
+              </button>
+            </div>
           </div>
         </div>
       )}
