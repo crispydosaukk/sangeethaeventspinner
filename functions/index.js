@@ -9,7 +9,7 @@ exports.sendBookingEmail = onCall(async (request) => {
     const data = request.data;
     
     // Fetch notification settings
-    let notificationEmails = 'rahulbadugu22@gmail.com, catering@sangeethaevents.co.uk, Digitalbotsolutions@gmail.com';
+    let notificationEmails = 'rahulbadugu22@gmail.com, Svrpinneruk@gmail.com, Digitalbotsolutions@gmail.com';
     let notificationsEnabled = true;
     
     try {

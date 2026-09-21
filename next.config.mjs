@@ -2,11 +2,9 @@ import { imageHosts } from './image-hosts.config.mjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
   devIndicators: {
     appIsrStatus: false,
   },
-  distDir: process.env.DIST_DIR || '.next',
   typescript: {
     ignoreBuildErrors: true,
   },

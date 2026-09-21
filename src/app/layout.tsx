@@ -8,8 +8,25 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Sangeetha Events Pinner — Luxury South Indian Pure Vegetarian Catering',
-  description: 'Sangeetha Events Pinner offers premier authentic South Indian pure vegetarian catering, bespoke live dosa stations, and grand banquet packages across Pinner, Harrow, London & Berkshire.',
+  metadataBase: new URL('https://svrpinnerevents.co.uk'),
+  title: 'SVR Sangeetha Events Pinner | Luxury South Indian Vegetarian Catering',
+  description: 'SVR Pinner Events offers premier authentic South Indian pure vegetarian catering, bespoke live dosa stations, and banquet packages across Pinner, Harrow & London.',
+  alternates: {
+    canonical: 'https://svrpinnerevents.co.uk',
+  },
+  openGraph: {
+    title: 'SVR Sangeetha Events Pinner | Luxury South Indian Vegetarian Catering',
+    description: 'SVR Pinner Events offers premier authentic South Indian pure vegetarian catering, bespoke live dosa stations, and banquet packages across Pinner, Harrow & London.',
+    url: 'https://svrpinnerevents.co.uk',
+    siteName: 'SVR Pinner Events',
+    locale: 'en_GB',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'SVR Sangeetha Events Pinner | Luxury South Indian Vegetarian Catering',
+    description: 'SVR Pinner Events offers premier authentic South Indian pure vegetarian catering, bespoke live dosa stations, and banquet packages across Pinner, Harrow & London.',
+  },
   icons: {
     icon: [
       { url: '/assets/images/sangeetha-logo.png', type: 'image/png' }
