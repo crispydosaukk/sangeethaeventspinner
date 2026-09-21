@@ -19,14 +19,14 @@ export interface FaqItem {
 }
 
 export const DEFAULT_HERO_CONTENT: HeroContent = {
-  badgeText: '100% PURE VEGETARIAN CATERING • PINNER & GREATER LONDON',
-  titleLine1: 'Elevate Your Celebration With Authentic',
-  titleHighlight: 'Sangeetha Events',
-  subtitle: 'Experience the gold standard of authentic South Indian vegetarian hospitality. From sizzling live dosa stations to opulent royal banquet feasts, handcrafted with timeless recipes and world-renowned perfection.',
+  badgeText: '100% PURE VEGETARIAN CATERING • PINNER & LONDON',
+  titleLine1: 'Bringing Authentic',
+  titleHighlight: 'Flavours To Your Event',
+  subtitle: 'Bring the authentic flavours of South India to your next celebration with Sangeetha Restaurants. We provide pure vegetarian outdoor catering and live dosa catering across London, serving freshly prepared dishes that are sure to satisfy every guest. From traditional favourites to our interactive live dosa experience, we make every event memorable with great food, quality ingredients and genuine South Indian flavours.',
   tags: [
-    { icon: '✨', text: 'Sizzling Live Dosa Party' },
-    { icon: '👑', text: 'Curated Banquet Packages' },
-    { icon: '⚡', text: '30 to 500+ Guest Capacity' }
+    { icon: '✨', text: 'Live Dosa Party Stations' },
+    { icon: '👑', text: 'Authentic Indian Flavours' },
+    { icon: '⚡', text: '100% Pure Vegetarian' }
   ],
   primaryBtnText: 'Explore Packages',
   secondaryBtnText: 'Instant Enquiry Form'
