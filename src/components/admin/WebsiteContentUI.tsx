@@ -7,9 +7,11 @@ import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import {
   DEFAULT_HERO_CONTENT,
   DEFAULT_FAQS,
+  DEFAULT_HIGHLIGHT_METRICS,
   HeroContent,
   FaqItem,
-  HeroTag
+  HeroTag,
+  MetricItem,
 } from '@/app/data/defaultContent';
 
 interface WebsiteContentUIProps {
@@ -17,11 +19,15 @@ interface WebsiteContentUIProps {
 }
 
 export default function WebsiteContentUI({ onNotify }: WebsiteContentUIProps) {
-  const [activeTab, setActiveTab] = useState<'hero' | 'faqs'>('hero');
+  const [activeTab, setActiveTab] = useState<'hero' | 'metrics' | 'faqs'>('hero');
 
   // Hero state
   const [hero, setHero] = useState<HeroContent>(DEFAULT_HERO_CONTENT);
   const [isSavingHero, setIsSavingHero] = useState(false);
+
+  // Metrics state
+  const [metrics, setMetrics] = useState<MetricItem[]>(DEFAULT_HIGHLIGHT_METRICS);
+  const [isSavingMetrics, setIsSavingMetrics] = useState(false);
 
   // FAQs state
   const [faqs, setFaqs] = useState<FaqItem[]>(DEFAULT_FAQS);
@@ -56,6 +62,19 @@ export default function WebsiteContentUI({ onNotify }: WebsiteContentUIProps) {
       (err) => console.warn('WebsiteContentUI hero notice:', err.message)
     );
 
+    const unsubMetrics = onSnapshot(
+      doc(db, 'site_data', 'highlight_metrics'),
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          if (Array.isArray(data.metrics) && data.metrics.length > 0) {
+            setMetrics(data.metrics);
+          }
+        }
+      },
+      (err) => console.warn('WebsiteContentUI highlight_metrics notice:', err.message)
+    );
+
     const unsubFaqs = onSnapshot(
       doc(db, 'site_data', 'faqs'),
       (snap) => {
@@ -71,6 +90,7 @@ export default function WebsiteContentUI({ onNotify }: WebsiteContentUIProps) {
 
     return () => {
       unsubHero();
+      unsubMetrics();
       unsubFaqs();
     };
   }, []);
@@ -95,6 +115,69 @@ export default function WebsiteContentUI({ onNotify }: WebsiteContentUIProps) {
     } finally {
       setIsSavingHero(false);
     }
+  };
+
+  // Save Highlight Metrics
+  const handleSaveMetrics = async () => {
+    setIsSavingMetrics(true);
+    try {
+      await setDoc(doc(db, 'site_data', 'highlight_metrics'), { metrics }, { merge: true });
+      if (onNotify) {
+        onNotify('Highlight metrics updated successfully!', 'success');
+      } else {
+        alert('Highlight metrics updated successfully!');
+      }
+    } catch (err: any) {
+      console.error('Error saving highlight metrics:', err);
+      if (onNotify) {
+        onNotify('Failed to save highlight metrics: ' + (err.message || String(err)), 'error');
+      } else {
+        alert('Failed to save highlight metrics: ' + (err.message || String(err)));
+      }
+    } finally {
+      setIsSavingMetrics(false);
+    }
+  };
+
+  const handleAddMetric = () => {
+    setMetrics((prev) => [...prev, { value: '100+', label: 'New Metric' }]);
+  };
+
+  const handleUpdateMetric = (idx: number, field: 'value' | 'label', val: string) => {
+    setMetrics((prev) => {
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], [field]: val };
+      return updated;
+    });
+  };
+
+  const handleDeleteMetric = (idx: number) => {
+    setMetrics((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleMoveMetric = (idx: number, direction: 'up' | 'down') => {
+    setMetrics((prev) => {
+      const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (targetIdx < 0 || targetIdx >= prev.length) return prev;
+      const copy = [...prev];
+      const temp = copy[idx];
+      copy[idx] = copy[targetIdx];
+      copy[targetIdx] = temp;
+      return copy;
+    });
+  };
+
+  const handleResetMetrics = () => {
+    setConfirmModal({
+      title: 'Reset Highlight Metrics',
+      message: 'Are you sure you want to reset the metrics strip back to default values?',
+      confirmLabel: 'Reset Defaults',
+      isDanger: true,
+      onConfirm: () => {
+        setMetrics(DEFAULT_HIGHLIGHT_METRICS);
+        setConfirmModal(null);
+      },
+    });
   };
 
   // Save FAQs
@@ -207,7 +290,7 @@ export default function WebsiteContentUI({ onNotify }: WebsiteContentUIProps) {
             Website Dynamic Content Manager
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">
-            Update your homepage Hero section and FAQs in real-time. Changes appear immediately on the website.
+            Update your homepage Hero section, Highlight Metrics strip, and FAQs in real-time. Changes appear immediately on the website.
           </p>
         </div>
 
@@ -222,6 +305,19 @@ export default function WebsiteContentUI({ onNotify }: WebsiteContentUIProps) {
             }`}
           >
             <span>✨ Hero Section</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('metrics')}
+            className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+              activeTab === 'metrics'
+                ? 'bg-white text-gray-900 shadow-sm font-bold'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <span>📊 Highlight Metrics</span>
+            <span className="bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+              {metrics.length}
+            </span>
           </button>
           <button
             onClick={() => setActiveTab('faqs')}
@@ -485,7 +581,172 @@ export default function WebsiteContentUI({ onNotify }: WebsiteContentUIProps) {
         </div>
       )}
 
-      {/* ─── TAB 2: FAQS MANAGER ─── */}
+      {/* ─── TAB 2: HIGHLIGHT METRICS STRIP MANAGER ─── */}
+      {activeTab === 'metrics' && (
+        <div className="space-y-6">
+          {/* Live Preview Box */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                  <Icon name="EyeIcon" size={16} className="text-[#06874D]" />
+                  <span>Live Preview (Homepage Metrics Strip)</span>
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  This preview renders in real-time exactly as customers see it below the booking enquiry form.
+                </p>
+              </div>
+              <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300">
+                {metrics.length} Cards Active
+              </span>
+            </div>
+
+            <div className="py-6 px-4 rounded-2xl border border-emerald-900/10 bg-[#E6EFEA]">
+              <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                {metrics.map((stat, idx) => (
+                  <div key={idx} className="p-4 rounded-2xl bg-white/90 border border-emerald-200/70 shadow-xs">
+                    <div className="text-2xl sm:text-3xl font-extrabold text-[#06874D]">{stat.value || '0'}</div>
+                    <div className="text-xs text-gray-800 font-bold mt-1">{stat.label || 'Metric Label'}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Cards Editor */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
+              <div>
+                <h3 className="text-base font-bold text-gray-900">
+                  Manage Highlight Metric Cards
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Edit numbers, percentages, ratings, and labels displayed in the highlight bar.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleResetMetrics}
+                  className="text-xs text-gray-600 hover:text-red-600 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-red-200 transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <Icon name="ArrowPathIcon" size={13} />
+                  <span>Reset Defaults</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleAddMetric}
+                  className="text-xs text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <Icon name="PlusCircleIcon" size={14} />
+                  <span>Add Metric Card</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Metric Items Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {metrics.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="bg-gray-50 rounded-xl p-4 border border-gray-200 hover:border-emerald-300 transition-all space-y-3 relative group"
+                >
+                  <div className="flex items-center justify-between border-b border-gray-200/80 pb-2">
+                    <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">
+                      Card #{idx + 1}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleMoveMetric(idx, 'up')}
+                        disabled={idx === 0}
+                        className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:hover:text-gray-400"
+                        title="Move Left/Up"
+                      >
+                        <Icon name="ArrowUpIcon" size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveMetric(idx, 'down')}
+                        disabled={idx === metrics.length - 1}
+                        className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:hover:text-gray-400"
+                        title="Move Right/Down"
+                      >
+                        <Icon name="ArrowDownIcon" size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteMetric(idx)}
+                        className="p-1 text-gray-400 hover:text-red-600 transition-colors ml-1"
+                        title="Delete Card"
+                      >
+                        <Icon name="TrashIcon" size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">
+                        Display Value (e.g. 500+, 4.9 ★, 100%)
+                      </label>
+                      <input
+                        type="text"
+                        value={item.value}
+                        onChange={(e) => handleUpdateMetric(idx, 'value', e.target.value)}
+                        placeholder="500+"
+                        className="w-full text-sm font-extrabold text-[#06874D] bg-white border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#06874D]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">
+                        Description / Label
+                      </label>
+                      <input
+                        type="text"
+                        value={item.label}
+                        onChange={(e) => handleUpdateMetric(idx, 'label', e.target.value)}
+                        placeholder="Celebrations Hosted"
+                        className="w-full text-xs font-semibold text-gray-800 bg-white border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#06874D]"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Bottom Save Bar */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-100">
+              <p className="text-xs text-gray-500">
+                Saving will instantly update the metrics strip on your live homepage.
+              </p>
+              <button
+                type="button"
+                onClick={handleSaveMetrics}
+                disabled={isSavingMetrics}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                style={{ background: 'linear-gradient(135deg, #06874D 0%, #046238 100%)' }}
+              >
+                {isSavingMetrics ? (
+                  <>
+                    <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                    <span>Saving Metrics...</span>
+                  </>
+                ) : (
+                  <>
+                    <Icon name="CloudArrowUpIcon" size={16} />
+                    <span>Save Highlight Metrics</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: FAQS MANAGER ─── */}
       {activeTab === 'faqs' && (
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">

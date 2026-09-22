@@ -31,7 +31,6 @@ const Footer: React.FC = () => {
         <div className="space-y-3">
           <h4 className="text-xs uppercase tracking-widest text-emerald-400 font-bold">Quick Navigation</h4>
           <ul className="space-y-2 text-sm">
-            <li><a href="#services" className="hover:text-white transition-colors">Catering Services</a></li>
             <li><a href="#menus" className="hover:text-white transition-colors">Banquet Packages</a></li>
             <li><a href="#menus" className="hover:text-white transition-colors">Live Dosa Counter</a></li>
             <li><a href="#book" className="hover:text-white transition-colors">Book Now / Enquire</a></li>

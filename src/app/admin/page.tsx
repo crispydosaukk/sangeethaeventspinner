@@ -81,6 +81,7 @@ interface Booking {
   paymentMethodExtra?: string;
   discount?: Discount;
   discountRequest?: DiscountRequest;
+  source?: string;
   enquiryDate: string;
   updatedAt?: string;
   createdAt?: string;
@@ -443,6 +444,7 @@ export default function AdminPage() {
             }
             return '';
           })(),
+          source: data.source || (data.serviceType || data.subtotalBeforeDiscount !== undefined || data.addOnMenuItems !== undefined ? 'direct_booking' : undefined),
           updatedAt: data.updatedAt,
           createdAt: data.createdAt,
         } as Booking;
@@ -2757,7 +2759,17 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
     printWindow.document.close();
   };
 
-  const isDirectBooking = (b: any) => Boolean(b && b.source === 'direct_booking');
+  const isDirectBooking = (b: any) => Boolean(
+    b && (
+      b.source === 'direct_booking' ||
+      b.source === 'manual_booking' ||
+      b.source === 'direct' ||
+      (b as any).activePriceOverridesList !== undefined ||
+      (b as any).addOnMenuItems !== undefined ||
+      (b as any).selectedHallOption !== undefined ||
+      (b as any).subtotalBeforeDiscount !== undefined
+    )
+  );
 
   const enquiries = bookings.filter(b => b.status === 'new_enquiry');
   const activeBookings = bookings.filter(b => b.status !== 'new_enquiry' && b.status !== 'completed');
@@ -3214,8 +3226,14 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                   partyHallTimeSlots={formSettings.partyHallTimeSlots}
                   outdoorTimeSlots={formSettings.outdoorTimeSlots}
                   downloadMenuPDF={downloadMenuSelectionPDF}
-                  downloadInvoicePDF={downloadInvoicePDF}
-                  onClose={() => setActiveTab('bookings')}
+                  onClose={(isCompleted?: boolean) => {
+                    if (isCompleted) {
+                      setShowDirectBookingHistory(true);
+                      setActiveTab('history');
+                    } else {
+                      setActiveTab('bookings');
+                    }
+                  }}
                   onViewHistory={() => setShowDirectBookingHistory(true)}
                 />
               )}

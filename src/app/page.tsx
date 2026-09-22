@@ -22,8 +22,10 @@ import {
 import {
   DEFAULT_HERO_CONTENT,
   DEFAULT_FAQS,
+  DEFAULT_HIGHLIGHT_METRICS,
   HeroContent,
   FaqItem,
+  MetricItem,
 } from '@/app/data/defaultContent';
 
 const EVENT_TYPES = ['Wedding', 'Birthday', 'Corporate', 'Anniversary', 'Graduation', 'Other'];
@@ -137,6 +139,22 @@ export default function HomePage() {
 
   const [heroContent, setHeroContent] = useState<HeroContent>(DEFAULT_HERO_CONTENT);
   const [faqs, setFaqs] = useState<FaqItem[]>(DEFAULT_FAQS);
+  const [highlightMetrics, setHighlightMetrics] = useState<MetricItem[]>(DEFAULT_HIGHLIGHT_METRICS);
+
+  React.useEffect(() => {
+    return onSnapshot(
+      doc(db, 'site_data', 'highlight_metrics'),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (Array.isArray(data.metrics) && data.metrics.length > 0) {
+            setHighlightMetrics(data.metrics);
+          }
+        }
+      },
+      (err) => console.warn("Firestore highlight_metrics notice:", err.message)
+    );
+  }, []);
 
   React.useEffect(() => {
     return onSnapshot(
@@ -637,90 +655,12 @@ export default function HomePage() {
       {/* ─── HIGHLIGHT METRICS STRIP ─── */}
       <section className="relative z-20 py-8 px-6 border-y border-emerald-900/10 bg-[#E6EFEA]">
         <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-          {[
-            { value: '500+', label: 'Celebrations Hosted' },
-            { value: '500', label: 'Max Guest Capacity' },
-            { value: '4.9 ★', label: 'Average Client Rating' },
-            { value: '100%', label: 'Pure Veg Fresh Preparation' },
-          ].map((stat) => (
-            <div key={stat.label} className="p-4 rounded-2xl bg-white/90 border border-emerald-200/70 shadow-xs">
+          {highlightMetrics.map((stat, idx) => (
+            <div key={idx} className="p-4 rounded-2xl bg-white/90 border border-emerald-200/70 shadow-xs">
               <div className="text-2xl sm:text-3xl font-extrabold text-[#06874D]">{stat.value}</div>
               <div className="text-xs text-gray-800 font-bold mt-1">{stat.label}</div>
             </div>
           ))}
-        </div>
-      </section>
-﻿      {/* ─── CATERING SERVICES SECTION ─── */}
-      <section id="services" className="py-20 px-6 bg-[#F4F8F5]">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
-            <span className="text-xs font-bold uppercase tracking-widest text-emerald-950 bg-emerald-100 px-4 py-1.5 rounded-full border border-emerald-300">
-              Our Core Services
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">Bespoke Catering Tailored For Every Occasion</h2>
-            <p className="text-gray-700 text-sm sm:text-base leading-relaxed font-medium">
-              Whether celebrating a wedding, milestone birthday, or hosting an intimate family ceremony, we provide comprehensive catering setups with authentic heritage taste.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Service 1 */}
-            <div className="bg-white rounded-3xl p-8 border border-emerald-200/80 shadow-md hover:shadow-xl hover:border-emerald-400 transition-all duration-300 group flex flex-col justify-between text-gray-900">
-              <div className="space-y-4">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-amber-400 text-2xl group-hover:scale-110 transition-transform">
-                  🥞
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 group-hover:text-emerald-300 transition-colors">Live Dosa Party Experience</h3>
-                <p className="text-sm text-gray-600 leading-relaxed font-medium">
-                  On-site master chefs preparing sizzling hot crisp dosas, uthappams, piping sambar, and an assortment of fresh chutneys directly in front of your guests.
-                </p>
-              </div>
-              <div className="pt-6 border-t border-gray-100 mt-6 flex items-center justify-between">
-                <span className="text-xs font-bold text-emerald-800">From £11.00 / guest</span>
-                <a href="#book" onClick={() => handleEnquireNow('Live Dosa Party (Weekday: £11 / Weekend: £12)')} className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1">
-                  Enquire Now →
-                </a>
-              </div>
-            </div>
-
-            {/* Service 2 */}
-            <div className="bg-white rounded-3xl p-8 border-2 border-emerald-300 shadow-lg hover:shadow-2xl hover:border-emerald-500 transition-all duration-300 group flex flex-col justify-between text-gray-900">
-              <div className="space-y-4">
-                <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 text-2xl group-hover:scale-110 transition-transform">
-                  🍛
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 group-hover:text-emerald-300 transition-colors">Grand Banquet Packages</h3>
-                <p className="text-sm text-gray-600 leading-relaxed font-medium">
-                  Sumptuous multi-course feast featuring premium starters, aromatic curries, traditional biryanis, warm breads, and artisanal Indian desserts.
-                </p>
-              </div>
-              <div className="pt-6 border-t border-gray-100 mt-6 flex items-center justify-between">
-                <span className="text-xs font-bold text-emerald-800">5 Distinct Packages</span>
-                <a href="#menus" className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1">
-                  View Packages →
-                </a>
-              </div>
-            </div>
-
-            {/* Service 3 */}
-            <div className="bg-white rounded-3xl p-8 border border-emerald-200/80 shadow-md hover:shadow-xl hover:border-emerald-400 transition-all duration-300 group flex flex-col justify-between text-gray-900">
-              <div className="space-y-4">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-amber-400 text-2xl group-hover:scale-110 transition-transform">
-                  🏛️
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 group-hover:text-emerald-300 transition-colors">Party Hall &amp; Dry Hire</h3>
-                <p className="text-sm text-gray-600 leading-relaxed font-medium">
-                  Dedicated in-house banquet facilities equipped with dining seating, audio systems, ambient lighting, and full kitchen amenities in Pinner & Greater London.
-                </p>
-              </div>
-              <div className="pt-6 border-t border-gray-100 mt-6 flex items-center justify-between">
-                <span className="text-xs font-bold text-emerald-800">Full Setup &amp; Service</span>
-                <a href="#book" onClick={() => handleEnquireNow('In-House Party Hall')} className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1">
-                  Enquire Hall →
-                </a>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 

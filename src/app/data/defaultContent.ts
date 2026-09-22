@@ -18,6 +18,18 @@ export interface FaqItem {
   answer: string;
 }
 
+export interface MetricItem {
+  value: string;
+  label: string;
+}
+
+export const DEFAULT_HIGHLIGHT_METRICS: MetricItem[] = [
+  { value: '500+', label: 'Celebrations Hosted' },
+  { value: '500', label: 'Max Guest Capacity' },
+  { value: '4.9 ★', label: 'Average Client Rating' },
+  { value: '100%', label: 'Pure Veg Fresh Preparation' },
+];
+
 export const DEFAULT_HERO_CONTENT: HeroContent = {
   badgeText: '100% PURE VEGETARIAN CATERING • PINNER & LONDON',
   titleLine1: 'Bringing Authentic',

@@ -822,8 +822,9 @@ export default function ManualBookingForm({
 
   // ── Complete Flow & Return ──
   const handleCompleteFlow = () => {
+    const isCompleted = finalPaymentPaid || paymentChoice === 'full';
     if (onClose) {
-      onClose();
+      (onClose as any)(isCompleted);
     } else if (onComplete) {
       onComplete();
     } else {
@@ -971,10 +972,9 @@ export default function ManualBookingForm({
         subtotalBeforeDiscount,
         discountAmount,
         totalAmount: grandTotal,
-        grandTotal,
         deposit: effectiveDeposit,
-        depositPaid,
-        finalPaymentPaid,
+        depositPaid: paymentChoice === 'full' || depositPaid,
+        finalPaymentPaid: paymentChoice === 'full' || finalPaymentPaid,
         paymentMethodDeposit,
         paymentMethodFinal,
         paymentProofDeposit,
@@ -984,8 +984,8 @@ export default function ManualBookingForm({
         notes: customerDetails.notes.trim(),
         message: customerDetails.notes.trim(),
         activePriceOverridesList,
-        status: finalPaymentPaid ? 'completed' : (depositPaid ? 'deposit_confirmed' : 'new_enquiry'),
-        source: initialData?.source || 'direct_booking',
+        status: (paymentChoice === 'full' || finalPaymentPaid) ? 'completed' : (depositPaid ? 'deposit_confirmed' : (initialData?.status || 'new_enquiry')),
+        source: 'direct_booking',
         updatedAt: new Date().toISOString(),
       };
 
@@ -3044,6 +3044,64 @@ export default function ManualBookingForm({
                   />
                 </label>
               </div>
+            </div>
+
+            {/* Order Status & Final Close Control */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg ${
+                  finalPaymentPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                }`}>
+                  <Icon name={finalPaymentPaid ? "CheckBadgeIcon" : "ClockIcon"} size={22} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-sm text-gray-900">Order Status:</span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                      finalPaymentPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {finalPaymentPaid ? '✓ Completed & Closed' : 'In Progress (Active)'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {finalPaymentPaid
+                      ? 'This booking is fully settled and recorded in Booking History.'
+                      : 'Mark as Completed to close the order and record it into History.'}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  const newStatus = !finalPaymentPaid;
+                  setFinalPaymentPaid(newStatus);
+                  if (newStatus) setDepositPaid(true);
+                  if (internalId) {
+                    const updatePayload: any = {
+                      finalPaymentPaid: newStatus,
+                      depositPaid: newStatus ? true : depositPaid,
+                      status: newStatus ? 'completed' : (depositPaid ? 'deposit_confirmed' : 'new_enquiry'),
+                      updatedAt: new Date().toISOString(),
+                    };
+                    await setDoc(doc(db, 'booking_requests', internalId), updatePayload, { merge: true });
+                    await setDoc(doc(db, 'bookings', internalId), updatePayload, { merge: true });
+                    if (onUpdate) onUpdate({ ...customerDetails, id: internalId, ...updatePayload });
+                  }
+                  setCustomAlert({
+                    message: newStatus ? 'Order successfully marked as Completed & Closed!' : 'Order reopened and set to Active status.',
+                    type: 'success'
+                  });
+                }}
+                className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs ${
+                  finalPaymentPaid
+                    ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
+                }`}
+              >
+                <Icon name={finalPaymentPaid ? "ArrowPathIcon" : "CheckCircleIcon"} size={16} />
+                <span>{finalPaymentPaid ? 'Reopen Order' : 'Mark Order as Completed & Closed'}</span>
+              </button>
             </div>
 
             {/* Quick Actions Bar */}
