@@ -41,6 +41,11 @@ export default function HomePage() {
     STANDARD_SETUP: DEFAULT_STANDARD_SETUP,
     TERMS_AND_CONDITIONS: DEFAULT_TERMS_AND_CONDITIONS,
     DRY_HIRE_PRICES: DEFAULT_DRY_HIRE_PRICES,
+    menuTabTitles: {
+      packages: '🎁 Packages',
+      menu: '🍛 Menu Items',
+      live: '🍳 Live Dosa Menu',
+    },
   });
 
   const [blockedDates, setBlockedDates] = useState<string[]>([]);
@@ -59,6 +64,11 @@ export default function HomePage() {
           STANDARD_SETUP: data.STANDARD_SETUP || DEFAULT_STANDARD_SETUP,
           TERMS_AND_CONDITIONS: data.TERMS_AND_CONDITIONS || DEFAULT_TERMS_AND_CONDITIONS,
           DRY_HIRE_PRICES: data.DRY_HIRE_PRICES || DEFAULT_DRY_HIRE_PRICES,
+          menuTabTitles: data.menuTabTitles || {
+            packages: '🎁 Packages',
+            menu: '🍛 Menu Items',
+            live: '🍳 Live Dosa Menu',
+          },
         });
       }
     }, (err) => {
@@ -727,12 +737,12 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Interactive Tab Switcher */}
+          {/* Interactive Tab Switcher (Dynamic Titles matching Madras Flavours) */}
           <div className="flex flex-wrap gap-3 justify-center mb-12">
             {([
-              { id: 'packages', label: '🎁 Banquet Packages' },
-              { id: 'menu', label: '🍛 Detailed Menu Items' },
-              { id: 'live', label: '🍳 Live Dosa Counter' },
+              { id: 'packages', label: menus.menuTabTitles?.packages || '🎁 Packages' },
+              { id: 'menu', label: menus.menuTabTitles?.menu || '🍛 Menu Items' },
+              { id: 'live', label: menus.menuTabTitles?.live || '🍳 Live Dosa Menu' },
             ] as { id: MenuTab; label: string }[]).map((tab) => (
               <button
                 key={tab.id}
@@ -799,87 +809,114 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* TAB 2: DETAILED MENU CATEGORIES */}
+          {/* TAB 2: MENU ITEMS (MADRAS FLAVOURS DIRECT CARD GRID UI - NO DROPDOWNS) */}
           {activeMenuTab === 'menu' && (
-            <div className="space-y-4 max-w-4xl mx-auto">
-              {MENU_CATEGORIES && Object.entries(MENU_CATEGORIES).map(([catKey, cat]: [string, any]) => (
-                <div key={catKey} className="bg-white rounded-2xl border border-emerald-200/80 shadow-xs overflow-hidden transition-all text-gray-900">
-                  <button
-                    onClick={() => toggleSection(catKey)}
-                    className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-emerald-50/40 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl">🍲</span>
-                      <div>
-                        <h4 className="text-base font-bold text-white">{cat.title || catKey}</h4>
-                        <span className="text-xs text-amber-400">{cat.items?.length || 0} Specialties Available</span>
+            <div className="space-y-8 max-w-6xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {MENU_CATEGORIES && Object.entries(MENU_CATEGORIES).map(([catKey, cat]: [string, any]) => {
+                  const titleMap: Record<string, string> = {
+                    staters: 'STATERS',
+                    vegMains: 'VEG MAINS',
+                    riceAndNoodles: 'RICE & NOODLES',
+                    paneerMains: 'PANEER MAINS',
+                    breads: 'BREADS',
+                    dhal: 'DHAL',
+                    dessert: 'DESSERT',
+                  };
+                  const title = (cat && typeof cat === 'object' && !Array.isArray(cat) && cat.title)
+                    ? cat.title.toUpperCase()
+                    : (titleMap[catKey] || catKey.replace(/([A-Z])/g, ' $1').toUpperCase().trim());
+
+                  const items: string[] = Array.isArray(cat)
+                    ? cat
+                    : (cat && Array.isArray(cat.items) ? cat.items : []);
+
+                  return (
+                    <div key={catKey} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow flex flex-col">
+                      <div
+                        className="px-4 py-3 text-white text-center font-bold text-base sm:text-lg tracking-wide"
+                        style={{ background: '#E06D43' }}
+                      >
+                        {title}
                       </div>
-                    </div>
-                    <Icon name={expandedSection === catKey ? 'ChevronUpIcon' : 'ChevronDownIcon'} size={20} className="text-gray-400" />
-                  </button>
-                  {expandedSection === catKey && (
-                    <div className="px-6 pb-6 pt-2 border-t border-white/10 bg-black/30">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                        {cat.items?.map((dish: string, idx: number) => (
-                          <div key={idx} className="text-xs text-gray-300 flex items-center gap-2 py-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                            <span>{dish}</span>
-                          </div>
+                      <ul className="p-5 space-y-2.5 flex-1">
+                        {items.map((item: string, idx: number) => (
+                          <li key={idx} className="text-sm text-gray-700 flex items-start gap-2.5 leading-snug">
+                            <span className="text-orange-500 mt-0.5 flex-shrink-0">🍳</span>
+                            <span>{item}</span>
+                          </li>
                         ))}
-                      </div>
+                      </ul>
                     </div>
-                  )}
-                </div>
-              ))}
+                  );
+                })}
+              </div>
             </div>
           )}
 
-          {/* TAB 3: LIVE DOSA PARTY MENU */}
+          {/* TAB 3: LIVE DOSA MENU (MADRAS FLAVOURS UI CLONE) */}
           {activeMenuTab === 'live' && (
-            <div className="glass-card-dark rounded-3xl p-8 max-w-4xl mx-auto border border-emerald-500/30">
-              <div className="text-center mb-8">
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-400 bg-emerald-500/10 px-3.5 py-1 rounded-full border border-emerald-500/20">
-                  Interactive Live Cooking Counter
-                </span>
-                <h3 className="text-2xl font-bold text-white mt-2">Live Dosa Party Inclusions</h3>
-                <p className="text-xs text-gray-400 mt-1">
-                  Weekday: £11.00/person (Min 35 guests) • Weekend/Bank Holiday: £12.00/person (Min 40 guests)
-                </p>
+            <div className="space-y-8 max-w-4xl mx-auto">
+              {/* Live Dosa Party Box */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8 w-full">
+                <div className="text-center mb-6">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-4">{LIVE_DOSA_PARTY_MENU?.title || 'Live Dosa Menu'}</h3>
+                  {Array.isArray(LIVE_DOSA_PARTY_MENU?.pricing) && LIVE_DOSA_PARTY_MENU.pricing.map((p: string, i: number) => (
+                    <p key={i} className="text-sm font-semibold text-gray-700 mb-1">{p}</p>
+                  ))}
+                  <p className="text-sm font-semibold text-gray-700 mb-1">Gazebo Hire (Flat Fee) £100.00</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="border border-yellow-500 rounded-xl p-4">
+                    <ul className="space-y-2">
+                      {Array.isArray(LIVE_DOSA_PARTY_MENU?.items) && LIVE_DOSA_PARTY_MENU.items.slice(0, Math.ceil(LIVE_DOSA_PARTY_MENU.items.length / 2)).map((item: string, idx: number) => (
+                        <li key={idx} className="text-sm text-gray-700 flex items-center gap-2">
+                          <span className="text-gray-400">🍳</span> {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="border border-yellow-500 rounded-xl p-4">
+                    <ul className="space-y-2">
+                      {Array.isArray(LIVE_DOSA_PARTY_MENU?.items) && LIVE_DOSA_PARTY_MENU.items.slice(Math.ceil(LIVE_DOSA_PARTY_MENU.items.length / 2)).map((item: string, idx: number) => (
+                        <li key={idx} className="text-sm text-gray-700 flex items-center gap-2">
+                          <span className="text-gray-400">🍳</span> {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <div className="text-center mt-6 text-sm font-bold text-gray-800">
+                  MINIMUM 2 HRS SERVICE
+                </div>
+                <div className="mt-6 text-center">
+                  <button
+                    onClick={() => handleEnquireNow('Live Dosa Party')}
+                    className="px-8 py-3 rounded-xl font-bold text-white text-xs uppercase tracking-wider shadow-md hover:shadow-lg transition-all"
+                    style={{ background: 'linear-gradient(135deg, #C62127 0%, #D82D34 45%, #06874D 100%)' }}
+                  >
+                    Enquire for Live Dosa Party
+                  </button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
-                  <h4 className="text-sm font-bold text-amber-300 uppercase tracking-wider mb-3">Sizzling Dosa Varieties</h4>
-                  <ul className="space-y-2 text-xs text-gray-300">
-                    <li>• Plain Crisp Golden Dosa</li>
-                    <li>• Traditional Masala Dosa (Potato filling)</li>
-                    <li>• Paneer Masala Dosa</li>
-                    <li>• Mysore Masala Dosa (Spicy red chutney)</li>
-                    <li>• Onion / Ghee Roast Dosa</li>
-                    <li>• Uthappam Varieties (Onion, Tomato, Mixed Veg)</li>
-                  </ul>
+              {/* Extras Box */}
+              {Array.isArray(EXTRAS) && EXTRAS.length > 0 && (
+                <div className="bg-white rounded-2xl border border-yellow-500 shadow-sm p-6 w-full">
+                  <div className="text-center mb-4 text-sm font-bold text-gray-800">
+                    MINIMUM 2 HRS SERVICE<br />
+                    Extras Are Charged Per Person Basis (Unless Stated Otherwise)
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-700">
+                    {EXTRAS.filter((e: any) => e.name !== 'Gazebo Hire (Flat Fee)').map((extra: any, idx: number, arr: any[]) => (
+                      <span key={idx} className="font-medium">
+                        {extra.name} £{Number(extra.price || 0).toFixed(2)}
+                        {idx < arr.length - 1 && <span className="mx-2 text-yellow-500">|</span>}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
-                  <h4 className="text-sm font-bold text-amber-300 uppercase tracking-wider mb-3">Accompaniments &amp; Extras</h4>
-                  <ul className="space-y-2 text-xs text-gray-300">
-                    <li>• Steaming Piping Hot Vegetable Sambar</li>
-                    <li>• Coconut Chutney &amp; Tomato Chutney</li>
-                    <li>• Spicy Mint/Coriander Chutney</li>
-                    <li>• Complimentary Idlis or Medu Vada (Package dependent)</li>
-                    <li>• Authentic Filter Coffee Service (Available on request)</li>
-                  </ul>
-                </div>
-              </div>
-
-              <div className="mt-8 text-center">
-                <button
-                  onClick={() => handleEnquireNow('Live Dosa Party (Weekday: £11 / Weekend: £12)')}
-                  className="px-8 py-3.5 rounded-xl font-bold text-white text-xs uppercase tracking-wider shadow-lg hover:shadow-red-500/25 transition-all"
-                  style={{ background: 'linear-gradient(135deg, #C62127 0%, #D82D34 45%, #06874D 100%)' }}
-                >
-                  Book Live Dosa Party Now
-                </button>
-              </div>
+              )}
             </div>
           )}
         </div>

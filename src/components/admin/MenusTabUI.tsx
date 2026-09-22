@@ -10,6 +10,8 @@ type Props = {
   tableService: any[]; setTableService: React.Dispatch<React.SetStateAction<any[]>>;
   kidsPricing: any[]; setKidsPricing: React.Dispatch<React.SetStateAction<any[]>>;
   dryHire: any[]; setDryHire: React.Dispatch<React.SetStateAction<any[]>>;
+  tabTitles?: { packages?: string; menu?: string; live?: string };
+  setTabTitles?: React.Dispatch<React.SetStateAction<{ packages: string; menu: string; live: string }>>;
   save: () => void;
   isSaving: boolean;
 };
@@ -17,7 +19,7 @@ type Props = {
 export default function MenusTabUI({
   packages, setPackages, categories, setCategories, liveMenu, setLiveMenu,
   extras, setExtras, standardExtraCharges, setStandardExtraCharges, tableService, setTableService, kidsPricing, setKidsPricing,
-  dryHire, setDryHire, save, isSaving
+  dryHire, setDryHire, tabTitles, setTabTitles, save, isSaving
 }: Props) {
   type Tab = 'packages' | 'categories' | 'live' | 'extras' | 'venue';
   const [activeTab, setActiveTab] = useState<Tab>('packages');
@@ -33,11 +35,75 @@ export default function MenusTabUI({
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <p className="text-sm text-gray-500">Edit menus, packages, and prices.</p>
+        <div>
+          <h2 className="text-base font-bold text-gray-900">Menus & Packages Management</h2>
+          <p className="text-xs text-gray-500">Edit menu tab names, packages, dishes, and pricing. Save to sync directly with the live website.</p>
+        </div>
         <button onClick={save} disabled={isSaving} className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl text-white shadow-md transition-all hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed" style={{ background: 'linear-gradient(135deg, #ED1C24, #F5A623)' }}>
           <Icon name="CloudArrowUpIcon" size={16} />
           {isSaving ? 'Saving...' : 'Save Changes to Website'}
         </button>
+      </div>
+
+      {/* ─── PUBLIC HOMEPAGE MENU TABS CONFIGURATION (MADRAS FLAVOURS MATCH) ─── */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+          <div>
+            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <span>🏷️ Website Menu Navigation Tabs (Public Homepage)</span>
+            </h3>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Customize the titles of the 3 menu navigation buttons shown on the public homepage. Matches the Madras Flavours clone.
+            </p>
+          </div>
+          {setTabTitles && (
+            <button
+              type="button"
+              onClick={() => {
+                setTabTitles({
+                  packages: '🎁 Packages',
+                  menu: '🍛 Menu Items',
+                  live: '🍳 Live Dosa Menu',
+                });
+              }}
+              className="text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+            >
+              Reset to Madras Flavours Names
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label className="text-xs font-semibold text-gray-700 block mb-1">Tab 1 Name (Default: 🎁 Packages)</label>
+            <input
+              type="text"
+              value={tabTitles?.packages ?? '🎁 Packages'}
+              placeholder="🎁 Packages"
+              onChange={e => setTabTitles && setTabTitles(prev => ({ ...prev, packages: e.target.value }))}
+              className="w-full text-xs font-bold border border-gray-200 rounded-xl px-3.5 py-2 text-gray-900 bg-white focus:outline-none focus:border-[#ED1C24] shadow-2xs"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-700 block mb-1">Tab 2 Name (Default: 🍛 Menu Items)</label>
+            <input
+              type="text"
+              value={tabTitles?.menu ?? '🍛 Menu Items'}
+              placeholder="🍛 Menu Items"
+              onChange={e => setTabTitles && setTabTitles(prev => ({ ...prev, menu: e.target.value }))}
+              className="w-full text-xs font-bold border border-gray-200 rounded-xl px-3.5 py-2 text-gray-900 bg-white focus:outline-none focus:border-[#ED1C24] shadow-2xs"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-700 block mb-1">Tab 3 Name (Default: 🍳 Live Dosa Menu)</label>
+            <input
+              type="text"
+              value={tabTitles?.live ?? '🍳 Live Dosa Menu'}
+              placeholder="🍳 Live Dosa Menu"
+              onChange={e => setTabTitles && setTabTitles(prev => ({ ...prev, live: e.target.value }))}
+              className="w-full text-xs font-bold border border-gray-200 rounded-xl px-3.5 py-2 text-gray-900 bg-white focus:outline-none focus:border-[#ED1C24] shadow-2xs"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Sub-tabs */}

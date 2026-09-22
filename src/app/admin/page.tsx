@@ -775,6 +775,13 @@ export default function AdminPage() {
   const [editableStandardExtraCharges, setEditableStandardExtraCharges] = useState<any[]>(PRESET_EXTRA_CHARGES);
   const [editableExtras, setEditableExtras] = useState<any[]>(EXTRAS.map(ex => ({ ...ex })));
 
+  // Editable website menu navigation tab titles (matches Madras Flavours)
+  const [editableMenuTabTitles, setEditableMenuTabTitles] = useState({
+    packages: '🎁 Packages',
+    menu: '🍛 Menu Items',
+    live: '🍳 Live Dosa Menu',
+  });
+
   // Editable venue/table/kids
   const [editableTableService, setEditableTableService] = useState(TABLE_SERVICE.map(t => ({ ...t })));
   const [editableKidsPricing, setEditableKidsPricing] = useState(KIDS_PRICING.map(k => ({ ...k })));
@@ -785,8 +792,6 @@ export default function AdminPage() {
   const [newLiveItemName, setNewLiveItemName] = useState('');
   const [newLiveItemPrice, setNewLiveItemPrice] = useState('');
 
-
-
   useEffect(() => {
     return onSnapshot(doc(db, 'site_data', 'menus'), (docSnap) => {
       if (docSnap.exists()) {
@@ -796,6 +801,14 @@ export default function AdminPage() {
         if (data.LIVE_DOSA_PARTY_MENU) setEditableLiveDosaPartyMenu(data.LIVE_DOSA_PARTY_MENU);
         if (data.STANDARD_EXTRA_CHARGES) setEditableStandardExtraCharges(data.STANDARD_EXTRA_CHARGES);
         if (data.EXTRAS) setEditableExtras(data.EXTRAS);
+
+        if (data.menuTabTitles) {
+          setEditableMenuTabTitles({
+            packages: data.menuTabTitles.packages || '🎁 Packages',
+            menu: data.menuTabTitles.menu || '🍛 Menu Items',
+            live: data.menuTabTitles.live || '🍳 Live Dosa Menu',
+          });
+        }
 
         // Keep the old venue/kids/hire prices from previous structure if they exist in a separate doc or same doc
         if (data.TABLE_SERVICE) setEditableTableService(data.TABLE_SERVICE);
@@ -818,6 +831,7 @@ export default function AdminPage() {
         TABLE_SERVICE: editableTableService,
         KIDS_PRICING: editableKidsPricing,
         DRY_HIRE_PRICES: editableDryHirePrices,
+        menuTabTitles: editableMenuTabTitles,
       }));
 
       await setDoc(doc(db, 'site_data', 'menus'), payload, { merge: true });
@@ -3772,6 +3786,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
               tableService={editableTableService} setTableService={setEditableTableService}
               kidsPricing={editableKidsPricing} setKidsPricing={setEditableKidsPricing}
               dryHire={editableDryHirePrices} setDryHire={setEditableDryHirePrices}
+              tabTitles={editableMenuTabTitles} setTabTitles={setEditableMenuTabTitles}
               save={saveAllMenusToDatabase}
               isSaving={isSavingMenus}
             />
