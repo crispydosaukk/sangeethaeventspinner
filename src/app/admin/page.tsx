@@ -3205,13 +3205,18 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                   packages={editableNewPackages}
                   extras={editableExtras}
                   menuCategories={editableMenuCategories}
-                  onBookingCreated={(newBooking) => setCustomAlert({ message: `Booking #${newBooking.id.slice(-6).toUpperCase()} has been successfully created.`, type: 'success' })}
+                  onBookingCreated={(newBooking) => {
+                    setCustomAlert({ message: `Booking #${newBooking.id.slice(-6).toUpperCase()} has been successfully created.`, type: 'success' });
+                    setBookings((prev: Booking[]) => [newBooking, ...prev.filter(b => b.id !== newBooking.id)]);
+                  }}
                   depositPercentage={pricingDetails.depositPercentage}
                   timeSlots={formSettings.timeSlots}
                   partyHallTimeSlots={formSettings.partyHallTimeSlots}
                   outdoorTimeSlots={formSettings.outdoorTimeSlots}
                   downloadMenuPDF={downloadMenuSelectionPDF}
                   downloadInvoicePDF={downloadInvoicePDF}
+                  onClose={() => setActiveTab('bookings')}
+                  onViewHistory={() => setShowDirectBookingHistory(true)}
                 />
               )}
             </div>

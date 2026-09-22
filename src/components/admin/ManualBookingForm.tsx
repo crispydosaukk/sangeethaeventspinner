@@ -88,6 +88,8 @@ export interface ManualBookingFormProps {
   downloadInvoicePDF?: (booking: any, isDeposit?: boolean) => void;
   downloadMenuPDF?: (booking: any) => void;
   onClose?: () => void;
+  onViewHistory?: () => void;
+  onComplete?: () => void;
 }
 
 export default function ManualBookingForm({
@@ -109,6 +111,8 @@ export default function ManualBookingForm({
   downloadInvoicePDF,
   downloadMenuPDF,
   onClose,
+  onViewHistory,
+  onComplete,
 }: ManualBookingFormProps) {
   const isEditMode = !!initialData;
   const editingId = initialData?.id || null;
@@ -735,14 +739,25 @@ export default function ManualBookingForm({
       const url = canvas.toDataURL('image/jpeg', 0.8);
       if (type === 'deposit') {
         setPaymentProofDeposit(url);
+        setDepositPaid(true);
       } else {
         setPaymentProofFinal(url);
+        setFinalPaymentPaid(true);
       }
 
       if (internalId) {
-        const updateField = type === 'deposit' ? 'paymentProofDeposit' : 'paymentProofFinal';
-        await setDoc(doc(db, 'booking_requests', internalId), { [updateField]: url, updatedAt: new Date().toISOString() }, { merge: true });
-        await setDoc(doc(db, 'bookings', internalId), { [updateField]: url, updatedAt: new Date().toISOString() }, { merge: true });
+        const updatePayload: any = {
+          [type === 'deposit' ? 'paymentProofDeposit' : 'paymentProofFinal']: url,
+          [type === 'deposit' ? 'depositPaid' : 'finalPaymentPaid']: true,
+          updatedAt: new Date().toISOString(),
+        };
+        if (type === 'final') {
+          updatePayload.status = 'completed';
+        } else if (!finalPaymentPaid) {
+          updatePayload.status = 'deposit_confirmed';
+        }
+        await setDoc(doc(db, 'booking_requests', internalId), updatePayload, { merge: true });
+        await setDoc(doc(db, 'bookings', internalId), updatePayload, { merge: true });
       }
 
       setCustomAlert({ message: `${type === 'deposit' ? 'Deposit' : 'Final'} payment screenshot uploaded and saved!`, type: 'success' });
@@ -751,6 +766,68 @@ export default function ManualBookingForm({
       setCustomAlert({ message: 'Failed to process screenshot.', type: 'error' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ── Reset Form (Create Another Booking) ──
+  const handleResetForm = () => {
+    setInternalId(null);
+    setCustomerDetails({
+      name: '',
+      phone: '',
+      email: '',
+      eventType: 'Wedding',
+      customEventType: '',
+      serviceType: 'Party Hall Booking',
+      date: '',
+      timeSession: '6:00 PM',
+      customTime: '',
+      adults: 50,
+      kids4to10: 0,
+      kidsUnder4: 0,
+      postCode: '',
+      address: '',
+      notes: '',
+    });
+    setSelectedPackageId(packages[1]?.id || packages[0]?.id || 'package14');
+    setSelectedPackageCustomPrice(14);
+    setPackagePriceOverride(null);
+    setPackagePriceOverrideReason('');
+    setKidsPriceOverride(null);
+    setKidsPriceOverrideReason('');
+    setKidsUnder4PriceOverride(null);
+    setKidsUnder4PriceOverrideReason('');
+    setSelectedDishes({});
+    setAddOnMenuItems([]);
+    setSelectedExtras([]);
+    setSelectedTableServices([]);
+    setSelectedHallOption(null);
+    setExtraChargesList([]);
+    setDiscountType('none');
+    setDiscountValue('');
+    setDiscountReason('');
+    setPaymentChoice('advance');
+    setDepositPaid(false);
+    setFinalPaymentPaid(false);
+    setPaymentMethodDeposit('Bank Transfer');
+    setPaymentMethodFinal('Cash');
+    setPaymentProofDeposit('');
+    setPaymentProofFinal('');
+    setCurrentStep(1);
+    setViewMode('form');
+    setStep1Errors({});
+    setPhoneError('');
+    setCustomAlert({ message: 'Form reset. Ready to create a new direct booking!', type: 'info' });
+  };
+
+  // ── Complete Flow & Return ──
+  const handleCompleteFlow = () => {
+    if (onClose) {
+      onClose();
+    } else if (onComplete) {
+      onComplete();
+    } else {
+      handleResetForm();
     }
   };
 
@@ -2856,9 +2933,24 @@ export default function ManualBookingForm({
               <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3 shadow-2xs">
                 <div className="flex items-center justify-between">
                   <h4 className="font-extrabold text-sm text-gray-900">Deposit Payment Proof</h4>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${depositPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                    {depositPaid ? 'Confirmed' : 'Pending'}
-                  </span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const newStatus = !depositPaid;
+                      setDepositPaid(newStatus);
+                      if (internalId) {
+                        await setDoc(doc(db, 'booking_requests', internalId), { depositPaid: newStatus, updatedAt: new Date().toISOString() }, { merge: true });
+                        await setDoc(doc(db, 'bookings', internalId), { depositPaid: newStatus, updatedAt: new Date().toISOString() }, { merge: true });
+                      }
+                      setCustomAlert({ message: `Deposit payment marked as ${newStatus ? 'Confirmed' : 'Pending'}!`, type: 'success' });
+                    }}
+                    className={`text-[10px] font-bold px-2.5 py-1 rounded-lg cursor-pointer transition-colors flex items-center gap-1 ${
+                      depositPaid ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                    }`}
+                    title="Click to toggle deposit paid status"
+                  >
+                    {depositPaid ? '✓ Confirmed' : '○ Mark as Confirmed'}
+                  </button>
                 </div>
 
                 {paymentProofDeposit ? (
@@ -2898,9 +2990,26 @@ export default function ManualBookingForm({
               <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3 shadow-2xs">
                 <div className="flex items-center justify-between">
                   <h4 className="font-extrabold text-sm text-gray-900">Final Balance Payment Proof</h4>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${finalPaymentPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'}`}>
-                    {finalPaymentPaid ? 'Fully Paid' : 'Balance Outstanding'}
-                  </span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const newStatus = !finalPaymentPaid;
+                      setFinalPaymentPaid(newStatus);
+                      if (internalId) {
+                        const updatePayload: any = { finalPaymentPaid: newStatus, updatedAt: new Date().toISOString() };
+                        if (newStatus) updatePayload.status = 'completed';
+                        await setDoc(doc(db, 'booking_requests', internalId), updatePayload, { merge: true });
+                        await setDoc(doc(db, 'bookings', internalId), updatePayload, { merge: true });
+                      }
+                      setCustomAlert({ message: `Final balance marked as ${newStatus ? 'Fully Paid' : 'Outstanding'}!`, type: 'success' });
+                    }}
+                    className={`text-[10px] font-bold px-2.5 py-1 rounded-lg cursor-pointer transition-colors flex items-center gap-1 ${
+                      finalPaymentPaid ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                    title="Click to toggle final balance paid status"
+                  >
+                    {finalPaymentPaid ? '✓ Fully Paid' : '○ Mark as Paid'}
+                  </button>
                 </div>
 
                 {paymentProofFinal ? (
@@ -2938,16 +3047,16 @@ export default function ManualBookingForm({
             </div>
 
             {/* Quick Actions Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-gray-200">
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-gray-200">
               <button
                 type="button"
                 onClick={() => {
                   setViewMode('form');
                   setCurrentStep(1);
                 }}
-                className="px-4 py-2 rounded-xl border border-gray-300 text-gray-700 font-bold text-xs hover:bg-gray-50 flex items-center gap-1.5"
+                className="px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-bold text-xs hover:bg-gray-50 flex items-center gap-1.5 transition-colors cursor-pointer"
               >
-                <Icon name="PencilSquareIcon" size={14} />
+                <Icon name="PencilSquareIcon" size={15} />
                 Edit Full Booking Details
               </button>
 
@@ -2967,7 +3076,7 @@ export default function ManualBookingForm({
                     <button
                       type="button"
                       onClick={() => handleGenerateCurrentInvoice(true)}
-                      className="px-4 py-2 rounded-xl font-bold text-xs text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 flex items-center gap-1.5 shadow-2xs transition-all"
+                      className="px-4 py-2 rounded-xl font-bold text-xs text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
                       title="Download Official Deposit Invoice PDF"
                     >
                       <Icon name="DocumentTextIcon" size={15} className="text-emerald-600" />
@@ -2977,7 +3086,7 @@ export default function ManualBookingForm({
                     <button
                       type="button"
                       onClick={() => handleGenerateCurrentInvoice(false)}
-                      className="px-4 py-2 rounded-xl font-bold text-xs text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-300 flex items-center gap-1.5 shadow-2xs transition-all"
+                      className="px-4 py-2 rounded-xl font-bold text-xs text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-300 flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
                       title="Download Complete Final Invoice PDF"
                     >
                       <Icon name="DocumentCheckIcon" size={15} className="text-blue-600" />
@@ -2990,13 +3099,63 @@ export default function ManualBookingForm({
                   <button
                     type="button"
                     onClick={handleGenerateCurrentMenuPDF}
-                    className="px-4 py-2 rounded-xl font-bold text-xs text-red-900 bg-red-50 hover:bg-red-100 border border-red-200 flex items-center gap-1.5 shadow-2xs transition-all"
+                    className="px-4 py-2 rounded-xl font-bold text-xs text-red-900 bg-red-50 hover:bg-red-100 border border-red-200 flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
                     title="Download Chef Kitchen Sheet"
                   >
                     <Icon name="DocumentTextIcon" size={15} className="text-red-600" />
                     Chef Kitchen Sheet
                   </button>
                 )}
+              </div>
+            </div>
+
+            {/* ── STEP 4 COMPLETION & CONTINUATION FOOTER BAR ── */}
+            <div className="mt-4 p-4 sm:p-5 bg-gradient-to-r from-gray-50 via-white to-gray-50 border border-gray-200 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+              <div className="flex items-center gap-3 text-left w-full sm:w-auto">
+                <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                  <Icon name="CheckCircleIcon" size={24} />
+                </div>
+                <div>
+                  <div className="text-sm font-extrabold text-gray-900">
+                    Flow Completed: Booking {internalId ? `#${internalId.slice(-6).toUpperCase()}` : 'Recorded'}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    All booking details and receipts are securely saved. Click Continue to return to bookings.
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
+                {!isEditMode && (
+                  <button
+                    type="button"
+                    onClick={handleResetForm}
+                    className="px-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-700 font-bold text-xs hover:bg-gray-50 transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  >
+                    <Icon name="PlusCircleIcon" size={16} className="text-gray-500" />
+                    + Create Another Booking
+                  </button>
+                )}
+
+                {onViewHistory && (
+                  <button
+                    type="button"
+                    onClick={onViewHistory}
+                    className="px-4 py-2.5 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 font-bold text-xs hover:bg-indigo-100 transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  >
+                    <Icon name="ClockIcon" size={16} />
+                    View Booking History
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleCompleteFlow}
+                  className="px-6 py-3 rounded-xl font-extrabold text-sm text-white bg-gradient-to-r from-[#ED1C24] to-[#9C0C11] hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center gap-2 cursor-pointer shadow-md"
+                >
+                  <span>Continue / Complete Flow</span>
+                  <Icon name="ArrowRightIcon" size={18} />
+                </button>
               </div>
             </div>
           </div>
