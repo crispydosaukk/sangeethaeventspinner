@@ -493,7 +493,7 @@ export default function MenusTabUI({
             </div>
             <h3 className="text-base font-bold text-gray-900 mb-1">Remove Package</h3>
             <p className="text-sm text-gray-500 mb-6">
-              Are you sure you want to remove <span className="font-semibold text-gray-900">"${deleteConfirmTarget.name}"</span>?
+              Are you sure you want to remove <span className="font-semibold text-gray-900">"{deleteConfirmTarget.name}"</span>?
             </p>
             <div className="flex gap-3 w-full">
               <button

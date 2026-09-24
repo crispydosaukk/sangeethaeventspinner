@@ -157,13 +157,13 @@ export default function ManualBookingForm({
   });
 
   const [selectedPackageCustomPrice, setSelectedPackageCustomPrice] = useState<number | string>(
-    initialData?.packagePricePerPerson || 14
+    initialData?.packagePricePerPerson || initialData?.pricePerPerson || 14
   );
 
   // ── Price Overrides & Flexibility (With Required Reasons) ──
   // Adult / Package Rate Override
   const [packagePriceOverride, setPackagePriceOverride] = useState<number | string | null>(
-    initialData?.pricePerPersonOverride ?? initialData?.pricePerPerson ?? null
+    initialData?.pricePerPersonOverride !== undefined ? initialData.pricePerPersonOverride : null
   );
   const [packagePriceOverrideReason, setPackagePriceOverrideReason] = useState<string>(
     initialData?.pricePerPersonOverrideReason || ''
@@ -172,7 +172,7 @@ export default function ManualBookingForm({
 
   // Kids (3–10 yrs) Rate Override
   const [kidsPriceOverride, setKidsPriceOverride] = useState<number | string | null>(
-    initialData?.kidsPriceOverride ?? initialData?.kidsPricePerPerson ?? null
+    initialData?.kidsPriceOverride !== undefined ? initialData.kidsPriceOverride : null
   );
   const [kidsPriceOverrideReason, setKidsPriceOverrideReason] = useState<string>(
     initialData?.kidsPriceOverrideReason || ''
@@ -565,13 +565,16 @@ export default function ManualBookingForm({
 
     // ── Category quota resolver based on selected package ──
   const getCategoryAllowedCount = (pkg: any, categoryKey: string): number => {
-    if (!pkg || !pkg.items || !Array.isArray(pkg.items)) return 999;
+    if (!pkg) return 999;
+    if (pkg.id === 'custom' || pkg.id === 'live_dosa') return 999;
+    if (!pkg.items || !Array.isArray(pkg.items)) return 999;
+
     const keyMatchMap: Record<string, RegExp> = {
       staters: /stater|starter/i,
       vegMains: /veg\s*main/i,
       riceAndNoodles: /rice|noodle/i,
       paneerMains: /paneer/i,
-      breads: /bread|roti|naan/i,
+      breads: /bread|roti|naan|poori|puri/i,
       dhal: /dhal|dal|lentil/i,
       dessert: /dessert|sweet/i,
     };
@@ -582,6 +585,7 @@ export default function ManualBookingForm({
       if (regex.test(item)) {
         const match = String(item).match(/^(\d+)/);
         if (match) return parseInt(match[1], 10);
+        return 1; // Default to 1 if item listed without leading number (e.g. 'Live Poori')
       }
     }
     return 0; // Category not included in this package
@@ -972,6 +976,7 @@ export default function ManualBookingForm({
         subtotalBeforeDiscount,
         discountAmount,
         totalAmount: grandTotal,
+        grandTotal,
         deposit: effectiveDeposit,
         depositPaid: paymentChoice === 'full' || depositPaid,
         finalPaymentPaid: paymentChoice === 'full' || finalPaymentPaid,
@@ -1667,7 +1672,7 @@ export default function ManualBookingForm({
         )}
 
         {/* ========================================================================= */}
-        {/* STEP 2: MADRAS FLAVOURS MENU SELECTION + ADD-ON FIELD PER CATEGORY        */}
+        {/* STEP 2: SANGEETHA EVENTS MENU SELECTION + ADD-ON FIELD PER CATEGORY       */}
         {/* ========================================================================= */}
         {viewMode === 'form' && currentStep === 2 && (
           <div className="space-y-6 animate-in fade-in duration-300">
@@ -1684,11 +1689,35 @@ export default function ManualBookingForm({
                 </div>
                 {currentPackage?.items && (
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {currentPackage.items.map((itemStr: string, idx: number) => (
-                      <span key={idx} className="text-xs px-2.5 py-1 rounded-lg bg-white border border-red-200 text-gray-800 font-medium">
-                        ✓ {itemStr}
-                      </span>
-                    ))}
+                    {currentPackage.items.map((itemStr: string, idx: number) => {
+                      const match = itemStr.match(/^(\d+)\s*(.+)$/);
+                      const qty = match ? parseInt(match[1], 10) : 1;
+                      const name = match ? match[2].trim() : itemStr;
+                      const catKey = /stater|starter/i.test(name) ? 'staters' :
+                                     /veg\s*main/i.test(name) ? 'vegMains' :
+                                     /paneer/i.test(name) ? 'paneerMains' :
+                                     /rice|noodle/i.test(name) ? 'riceAndNoodles' :
+                                     /bread|roti|naan|poori|puri/i.test(name) ? 'breads' :
+                                     /dhal|dal/i.test(name) ? 'dhal' :
+                                     /dessert/i.test(name) ? 'dessert' : '';
+                      const currentSelectedCount = catKey ? (selectedDishes[catKey] || []).length : 0;
+                      const isFulfilled = catKey && currentSelectedCount >= qty;
+
+                      return (
+                        <span
+                          key={idx}
+                          className={`text-xs px-2.5 py-1 rounded-lg font-medium border transition-all ${
+                            isFulfilled
+                              ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold shadow-2xs'
+                              : currentSelectedCount > 0
+                              ? 'bg-amber-50 border-amber-300 text-amber-800 font-semibold'
+                              : 'bg-white border-red-200 text-gray-800'
+                          }`}
+                        >
+                          {isFulfilled ? '✓' : currentSelectedCount > 0 ? '⏳' : '○'} {itemStr} ({currentSelectedCount}/{qty || '✓'})
+                        </span>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1742,7 +1771,7 @@ export default function ManualBookingForm({
                         )}
                         {addOnsInThisCategory.length > 0 && (
                           <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200">
-                            +${addOnsInThisCategory.length} Add-on
+                            +{addOnsInThisCategory.length} Add-on
                           </span>
                         )}
                       </div>

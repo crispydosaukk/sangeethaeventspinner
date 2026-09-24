@@ -531,10 +531,12 @@ export default function WebsiteContentUI({ onNotify }: WebsiteContentUIProps) {
                 </div>
 
                 <h1 className="text-xl sm:text-2xl font-extrabold text-white leading-tight">
-                  {hero.titleLine1 || 'Main Title'}{' '}
-                  <span className="text-amber-400 font-display block">
-                    {hero.titleHighlight || 'Highlighted Brand'}
-                  </span>
+                  {hero.titleLine1 || 'Main Title'}
+                  {hero.titleHighlight ? (
+                    <span className="text-amber-400 font-display block">
+                      {hero.titleHighlight}
+                    </span>
+                  ) : null}
                 </h1>
 
                 <p className="text-xs text-gray-300 leading-relaxed line-clamp-4">

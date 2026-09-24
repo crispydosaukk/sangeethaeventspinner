@@ -367,8 +367,14 @@ export default function HomePage() {
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-gray-900 leading-[1.12]">
-              {heroContent.titleLine1} <br className="hidden sm:inline" />
-              <span className="gold-text-gradient font-display">{heroContent.titleHighlight}</span>
+              {heroContent.titleLine1}
+              {heroContent.titleHighlight ? (
+                <>
+                  {' '}
+                  <br className="hidden sm:inline" />
+                  <span className="gold-text-gradient font-display">{heroContent.titleHighlight}</span>
+                </>
+              ) : null}
             </h1>
 
             <p className="text-base sm:text-lg text-gray-700 max-w-2xl lg:mx-0 mx-auto leading-relaxed font-medium">
@@ -503,7 +509,7 @@ export default function HomePage() {
 
                   {/* Service Type */}
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Service Format *</label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Service Type *</label>
                     <select
                       required
                       value={bookingForm.serviceType}

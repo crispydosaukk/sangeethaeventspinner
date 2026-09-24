@@ -402,6 +402,7 @@ export default function AdminPage() {
       const liveBookings: Booking[] = snapshot.docs.map((doc) => {
         const data = doc.data();
         return {
+          ...data,
           id: doc.id,
           name: data.name || 'Unknown',
           email: data.email || 'N/A',
@@ -410,13 +411,13 @@ export default function AdminPage() {
           address: data.address || 'N/A',
           eventType: data.eventType || 'N/A',
           date: data.date || 'N/A',
-          time: data.timeOfDay || 'N/A',
+          time: data.timeOfDay || data.time || 'N/A',
           guests: data.guests || 0,
           adults: data.adults ?? undefined,
           kids4to10: data.kids4to10 ?? 0,
           kidsUnder4: data.kidsUnder4 ?? 0,
           status: data.status || 'new_enquiry',
-          notes: data.message || '',
+          notes: data.notes || data.message || '',
           baseAmount: data.baseAmount || 0,
           deposit: data.deposit || 0,
           depositPaid: data.depositPaid || false,
@@ -444,7 +445,7 @@ export default function AdminPage() {
             }
             return '';
           })(),
-          source: data.source || (data.serviceType || data.subtotalBeforeDiscount !== undefined || data.addOnMenuItems !== undefined ? 'direct_booking' : undefined),
+          source: data.source || (data.subtotalBeforeDiscount !== undefined || data.addOnMenuItems !== undefined ? 'direct_booking' : undefined),
           updatedAt: data.updatedAt,
           createdAt: data.createdAt,
         } as Booking;
@@ -1934,11 +1935,19 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
   };
 
   const getTotalAmount = (b: Booking) => {
-    const food = getFoodPackageTotal(b);
-    if (b.vatRate === 20) {
-      return food * 1.2;
+    if ((b as any).totalAmount !== undefined && (b as any).totalAmount !== null && (b as any).totalAmount > 0) {
+      return (b as any).totalAmount;
     }
-    return food;
+    if ((b as any).grandTotal !== undefined && (b as any).grandTotal !== null && (b as any).grandTotal > 0) {
+      return (b as any).grandTotal;
+    }
+    const food = getFoodPackageTotal(b);
+    const extras = ((b as any).extrasAmount || 0) + ((b as any).tableServiceTotal || 0) + ((b as any).hallTotal || 0);
+    const total = food + extras;
+    if (b.vatRate === 20) {
+      return total * 1.2;
+    }
+    return total;
   };
 
   const downloadMenuSelectionPDF = (booking: Booking) => {
@@ -1959,25 +1968,42 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
 
     // Build menu items HTML
     let invoiceMenuItemsHTML = '';
-    if (booking.selectedMenuItems && Object.keys(booking.selectedMenuItems).length > 0) {
+    const hasMenuItems = booking.selectedMenuItems && Object.keys(booking.selectedMenuItems).length > 0;
+    const hasAddOns = (booking as any).addOnMenuItems && Array.isArray((booking as any).addOnMenuItems) && (booking as any).addOnMenuItems.length > 0;
+
+    if (hasMenuItems || hasAddOns) {
       invoiceMenuItemsHTML += '<div class="menu-grid">';
       const categoryLabels: Record<string, string> = {
         staters: 'Starters', vegMains: 'Veg Mains', paneerMains: 'Paneer Mains',
-        riceAndNoodles: 'Rice/Noodles', dessert: 'Desserts', breads: 'Breads', dhal: 'Dhal'
+        riceAndNoodles: 'Rice/Noodles', dessert: 'Desserts', breads: 'Breads', dhal: 'Dhal',
+        liveDosa: 'Live Dosa Station'
       };
-      for (const [key, items] of Object.entries(booking.selectedMenuItems)) {
-        if (items && items.length > 0) {
-          const label = categoryLabels[key] || key;
-          const itemsList = items.map(item => `<li>${item}</li>`).join('');
-          invoiceMenuItemsHTML += `
-            <div class="menu-category-block">
-              <h4 class="category-title">${label}</h4>
-              <ul class="category-items">
-                ${itemsList}
-              </ul>
-            </div>
-          `;
+      if (hasMenuItems) {
+        for (const [key, items] of Object.entries(booking.selectedMenuItems!)) {
+          if (items && items.length > 0) {
+            const label = categoryLabels[key] || key;
+            const itemsList = items.map(item => `<li>${item}</li>`).join('');
+            invoiceMenuItemsHTML += `
+              <div class="menu-category-block">
+                <h4 class="category-title">${label}</h4>
+                <ul class="category-items">
+                  ${itemsList}
+                </ul>
+              </div>
+            `;
+          }
         }
+      }
+      if (hasAddOns) {
+        const addOnsList = (booking as any).addOnMenuItems.map((item: any) => `<li><strong>${item.name}</strong>${item.cost ? ` (+£${item.cost}${item.costType === 'per_person' ? '/guest' : ' flat'})` : ''}</li>`).join('');
+        invoiceMenuItemsHTML += `
+          <div class="menu-category-block" style="border-left: 3px solid #ED1C24;">
+            <h4 class="category-title" style="color: #ED1C24;">Add-on / Extra Dishes</h4>
+            <ul class="category-items">
+              ${addOnsList}
+            </ul>
+          </div>
+        `;
       }
       invoiceMenuItemsHTML += '</div>';
     } else {
@@ -2346,6 +2372,51 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
             <td class="text-right">+£${extra.amount.toLocaleString()}</td>
           </tr>
         `;
+      });
+    }
+
+    // Direct booking extras & venue options if present
+    if ((booking as any).selectedExtras && Array.isArray((booking as any).selectedExtras)) {
+      (booking as any).selectedExtras.forEach((ex: any) => {
+        extrasRows += `
+          <tr>
+            <td>• Live Counter / Extra: ${ex.name}</td>
+            <td class="text-right">+£${Number(ex.price || 0).toLocaleString()}</td>
+          </tr>
+        `;
+      });
+    }
+    if ((booking as any).selectedTableServices && Array.isArray((booking as any).selectedTableServices)) {
+      (booking as any).selectedTableServices.forEach((ts: any) => {
+        const amt = ts.customAmount ?? (parseFloat(String(ts.price).replace(/[^\d.]/g, '')) || 0);
+        const totalTs = amt * (booking.adults ?? booking.guests ?? 0);
+        extrasRows += `
+          <tr>
+            <td>• Table Service: ${ts.service}</td>
+            <td class="text-right">+£${totalTs.toLocaleString()}</td>
+          </tr>
+        `;
+      });
+    }
+    if ((booking as any).selectedHallOption) {
+      extrasRows += `
+        <tr>
+          <td>• Venue / Hall: ${(booking as any).selectedHallOption.label}</td>
+          <td class="text-right">+£${Number((booking as any).selectedHallOption.amount || 0).toLocaleString()}</td>
+        </tr>
+      `;
+    }
+    if ((booking as any).addOnMenuItems && Array.isArray((booking as any).addOnMenuItems)) {
+      (booking as any).addOnMenuItems.forEach((addon: any) => {
+        const cost = addon.costType === 'per_person' ? (Number(addon.cost || 0) * (booking.adults ?? booking.guests ?? 0)) : Number(addon.cost || 0);
+        if (cost > 0) {
+          extrasRows += `
+            <tr>
+              <td>• Add-on Dish: ${addon.name}</td>
+              <td class="text-right">+£${cost.toLocaleString()}</td>
+            </tr>
+          `;
+        }
       });
     }
 
@@ -2764,10 +2835,8 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
       b.source === 'direct_booking' ||
       b.source === 'manual_booking' ||
       b.source === 'direct' ||
-      (b as any).activePriceOverridesList !== undefined ||
-      (b as any).addOnMenuItems !== undefined ||
-      (b as any).selectedHallOption !== undefined ||
-      (b as any).subtotalBeforeDiscount !== undefined
+      ((b as any).subtotalBeforeDiscount !== undefined && (b as any).subtotalBeforeDiscount !== null) ||
+      (Array.isArray((b as any).addOnMenuItems) && (b as any).addOnMenuItems.length > 0)
     )
   );
 
@@ -3226,13 +3295,9 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                   partyHallTimeSlots={formSettings.partyHallTimeSlots}
                   outdoorTimeSlots={formSettings.outdoorTimeSlots}
                   downloadMenuPDF={downloadMenuSelectionPDF}
-                  onClose={(isCompleted?: boolean) => {
-                    if (isCompleted) {
-                      setShowDirectBookingHistory(true);
-                      setActiveTab('history');
-                    } else {
-                      setActiveTab('bookings');
-                    }
+                  downloadInvoicePDF={downloadInvoicePDF}
+                  onClose={() => {
+                    setShowDirectBookingHistory(true);
                   }}
                   onViewHistory={() => setShowDirectBookingHistory(true)}
                 />
