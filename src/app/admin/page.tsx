@@ -323,6 +323,21 @@ function getFirstDayOfMonth(year: number, month: number) {
   return new Date(year, month, 1).getDay();
 }
 
+// Sanitize text for messages to prevent Unicode surrogate corruption / question marks () across devices and desktop apps
+function sanitizeMessageText(text: string): string {
+  if (!text) return '';
+  return text
+    // Replace emojis with clean universal bullet points or clear text
+    .replace(/[📅👥🍱💰💳🏷️🚚🎪▫️]/gu, '•')
+    .replace(/[✨🎉]/gu, '')
+    .replace(/✅/gu, '(Confirmed)')
+    .replace(/🙏/gu, 'Thank you!')
+    // Strip any remaining high-surrogate / astral plane Unicode characters that turn into  in Windows URL handlers / redirects
+    .replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '')
+    .replace(/[ \t]+/g, ' ')
+    .trim();
+}
+
 function buildWhatsAppLink(phone: string, message: string) {
   let cleaned = (phone || '').replace(/\D/g, '');
   if (cleaned.startsWith('0') && cleaned.length === 11) {
@@ -330,7 +345,8 @@ function buildWhatsAppLink(phone: string, message: string) {
   } else if (cleaned.startsWith('7') && cleaned.length === 10) {
     cleaned = '44' + cleaned;
   }
-  return `https://wa.me/${cleaned}?text=${encodeURIComponent(message)}`;
+  const cleanMessage = sanitizeMessageText(message);
+  return `https://api.whatsapp.com/send?phone=${cleaned}&text=${encodeURIComponent(cleanMessage)}`;
 }
 
 type AdminTab = 'overview' | 'enquiries' | 'bookings' | 'calendar' | 'customers' | 'payments' | 'menus' | 'history' | 'settings' | 'access' | 'discount_approvals' | 'tracker' | 'manual_booking' | 'content';
@@ -543,7 +559,23 @@ export default function AdminPage() {
   const [expandedCategoryKey, setExpandedCategoryKey] = useState<string | null>(null);
   const [historySearch, setHistorySearch] = useState('');
   const [customAlert, setCustomAlert] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const [bookingToDelete, setBookingToDelete] = useState<{ id: string; name: string } | null>(null);
+
+  // ── Multiple Selection & Delete Modal States ──
+  const [selectedEnquiryIds, setSelectedEnquiryIds] = useState<string[]>([]);
+  const [selectedBookingIds, setSelectedBookingIds] = useState<string[]>([]);
+  const [selectedHistoryIds, setSelectedHistoryIds] = useState<string[]>([]);
+  const [selectedDirectBookingIds, setSelectedDirectBookingIds] = useState<string[]>([]);
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
+
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    itemCount: number;
+    ids: string[];
+    itemNames?: string[];
+  } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isUploadingProof, setIsUploadingProof] = useState(false);
   const [isUploadingFinalProof, setIsUploadingFinalProof] = useState(false);
   const [isUploadingExtraProof, setIsUploadingExtraProof] = useState(false);
@@ -868,9 +900,9 @@ export default function AdminPage() {
     }
 
     if (menuType.includes('Menu') || menuType === 'Extras' || menuType === 'Packages') {
-      text += `Please reply with your preferred selections. We look forward to serving you! 🙏`;
+      text += `Please reply with your preferred selections. We look forward to serving you!`;
     } else {
-      text += `Please let us know if you have any questions or would like to proceed with booking! 🙏`;
+      text += `Please let us know if you have any questions or would like to proceed with booking!`;
     }
     return buildWhatsAppLink(customerPhone, text);
   };
@@ -896,7 +928,7 @@ export default function AdminPage() {
     text += `*Kids Pricing* (Over 50 Adults):\n`;
     text += editableKidsPricing.map(kp => `• ${kp.ageRange}: ${kp.price}`).join('\n') + '\n\n';
 
-    text += `Please let us know your preferred options, estimated guest count, and any customizations you would like! 🙏`;
+    text += `Please let us know your preferred options, estimated guest count, and any customizations you would like!`;
 
     return buildWhatsAppLink(booking.phone, text);
   };
@@ -930,14 +962,14 @@ export default function AdminPage() {
       for (const [key, items] of Object.entries(booking.selectedMenuItems)) {
         if (items && items.length > 0) {
           const label = categoryLabels[key] || key;
-          menuItemsText += `  ▫️ ${label}: ${items.join(', ')}\n`;
+          menuItemsText += `  • ${label}: ${items.join(', ')}\n`;
         }
       }
     }
 
     const packageText = `*Menu Selection:*\n• Package: *${booking.selectedMenu || booking.package}*\n${menuItemsText}`;
 
-    return buildWhatsAppLink(booking.phone, `Hi ${booking.name.split(' ')[0]},\n\nThank you for choosing Sangeetha Events Pinner! Here is a summary of your confirmed selections:\n\n*Event Details:*\n• Date: ${booking.date}\n• Event Type: ${booking.eventType}\n\n${packageText}\n*Guests:*\n${guestBreakdown}\n• Total Guests: ${adults + kids4to10 + kidsUnder4}\n${extrasText}\n\n*Pricing Details:*\n• Base Amount: £${booking.baseAmount.toLocaleString()}${discountText}${vatText}\n• Grand Total: *£${grandTotal.toLocaleString()}*\n• Deposit Required: *£${booking.deposit.toLocaleString()}*\n\n${WHATSAPP_TERMS_TEXT}\n\nPlease let us know if this summary is correct. Once you confirm, we will send our bank details for the deposit payment! 🙏`);
+    return buildWhatsAppLink(booking.phone, `Hi ${booking.name.split(' ')[0]},\n\nThank you for choosing Sangeetha Events Pinner! Here is a summary of your confirmed selections:\n\n*Event Details:*\n• Date: ${booking.date}\n• Event Type: ${booking.eventType}\n\n${packageText}\n*Guests:*\n${guestBreakdown}\n• Total Guests: ${adults + kids4to10 + kidsUnder4}\n${extrasText}\n\n*Pricing Details:*\\n• Base Amount: £${booking.baseAmount.toLocaleString()}${discountText}${vatText}\n• Grand Total: *£${grandTotal.toLocaleString()}*\n• Deposit Required: *£${booking.deposit.toLocaleString()}*\n\n${WHATSAPP_TERMS_TEXT}\n\nPlease let us know if this summary is correct. Once you confirm, we will send our bank details for the deposit payment! Thank you!`);
   };
 
   const buildStep5DepositConfirmedWhatsAppText = (booking: Booking) => {
@@ -949,7 +981,7 @@ export default function AdminPage() {
     const discountText = booking.discount ? `\n• Discount (${booking.discount.reason}): -£${getDiscountAmount(booking).toLocaleString()}` : '';
     const vatText = booking.vatRate === 20 ? `\n• VAT (20%): +£${(getFoodPackageTotal(booking) * 0.2).toLocaleString()}` : '';
 
-    return buildWhatsAppLink(booking.phone, `Hi ${booking.name.split(' ')[0]},\n\nWe have received and verified your deposit of *£${booking.deposit.toLocaleString()}*! Your booking for the *${booking.eventType}* on *${booking.date}* is officially confirmed!\n\n*Payments Summary:*${discountText}${vatText}\n• Grand Total: £${grandTotal.toLocaleString()}\n• Deposit Paid: £${booking.deposit.toLocaleString()}\n• Remaining Balance: *£${(grandTotal - booking.deposit).toLocaleString()}*\n${booking.dueDate ? `• Balance Due Date: ${booking.dueDate}` : ''}\n\nWe will contact you shortly before the due date to finalize the food selections and details. Thank you for choosing Sangeetha Events Pinner! 🙏✨`);
+    return buildWhatsAppLink(booking.phone, `Hi ${booking.name.split(' ')[0]},\n\nWe have received and verified your deposit of *£${booking.deposit.toLocaleString()}*! Your booking for the *${booking.eventType}* on *${booking.date}* is officially confirmed!\n\n*Payments Summary:*${discountText}${vatText}\n• Grand Total: £${grandTotal.toLocaleString()}\n• Deposit Paid: £${booking.deposit.toLocaleString()}\n• Remaining Balance: *£${(grandTotal - booking.deposit).toLocaleString()}*\n${booking.dueDate ? `• Balance Due Date: ${booking.dueDate}` : ''}\n\nWe will contact you shortly before the due date to finalize the food selections and details. Thank you for choosing Sangeetha Events Pinner!`);
   };
 
   const buildStep7FinalPaymentReceivedWhatsAppText = (booking: Booking) => {
@@ -960,7 +992,7 @@ export default function AdminPage() {
     const mainBalance = grandTotal - booking.deposit - extraChargesWithVat;
     const vatText = booking.vatRate === 20 ? `\n• VAT (20%): +£${(getFoodPackageTotal(booking) * 0.2).toLocaleString()}` : '';
 
-    return buildWhatsAppLink(booking.phone, `Hi ${booking.name.split(' ')[0]},\n\nWe have successfully received and verified your final payment of *£${mainBalance.toLocaleString()}*! Your booking account is now settled.\n\n*Payments Summary:*${vatText}\n• Grand Total: £${grandTotal.toLocaleString()}\n• Deposit Paid: £${booking.deposit.toLocaleString()}\n• Final Payment (Food Package) Paid: £${mainBalance.toLocaleString()}\n• Remaining Balance: *Paid in Full ✅*\n\nWe look forward to serving you on *${booking.date}* at *${booking.time}*! If you have any last-minute adjustments, please let us know. Thank you! 🙏✨`);
+    return buildWhatsAppLink(booking.phone, `Hi ${booking.name.split(' ')[0]},\n\nWe have successfully received and verified your final payment of *£${mainBalance.toLocaleString()}*! Your booking account is now settled.\n\n*Payments Summary:*${vatText}\n• Grand Total: £${grandTotal.toLocaleString()}\n• Deposit Paid: £${booking.deposit.toLocaleString()}\n• Final Payment (Food Package) Paid: £${mainBalance.toLocaleString()}\n• Remaining Balance: *Paid in Full (Settled)*\n\nWe look forward to serving you on *${booking.date}* at *${booking.time}*! If you have any last-minute adjustments, please let us know. Thank you!`);
   };
 
   const buildCompletedWhatsAppText = (booking: Booking) => {
@@ -1009,9 +1041,9 @@ ${booking.vatRate === 20 ? `• VAT (20%): +£${(getFoodPackageTotal(booking) * 
 *Payments Received:*
 • Deposit: £${deposit}
 • Final Payment (Food Package, incl. VAT): £${finalPaymentPaidAmt.toLocaleString()}
-${extraChargesTotal > 0 ? `• Extra Charges Paid (incl. VAT): £${extraChargesWithVat.toLocaleString()} (${booking.paymentMethodExtra ? `Paid via ${booking.paymentMethodExtra.replace('Paid by ', '')}` : 'Paid'})\n` : ''}• Status: *Paid in Full ✅*
+${extraChargesTotal > 0 ? `• Extra Charges Paid (incl. VAT): £${extraChargesWithVat.toLocaleString()} (${booking.paymentMethodExtra ? `Paid via ${booking.paymentMethodExtra.replace('Paid by ', '')}` : 'Paid'})\n` : ''}• Status: *Paid in Full (Completed)*
 
-It was an absolute pleasure serving you. We hope you and your guests had a wonderful time! We'd love to host your future events. 🙏✨`;
+It was an absolute pleasure serving you. We hope you and your guests had a wonderful time! We'd love to host your future events. Thank you!`;
   };
 
   const buildFinalInvoiceWhatsAppText = (booking: Booking, bank: typeof bankDetails) => {
@@ -1062,7 +1094,7 @@ It was an absolute pleasure serving you. We hope you and your guests had a wonde
       `• Total Paid: £${totalPaid.toLocaleString()}\n` +
       `• *Remaining Balance Due: ${remainingBalance <= 0 ? 'PAID IN FULL ✓' : `£${remainingBalance.toLocaleString()}`}*`;
 
-    return `Hi ${booking.name.split(' ')[0]}, thank you for choosing Sangeetha Events Pinner for your ${booking.eventType}! 🎉\n\nHere is your final invoice summary:\n\n*Booking Ref:* ${generateDisplayId(booking)}\n*Package:* ${booking.selectedMenu || booking.package}\n\n${guestBreakdown}\n\n*Base Amount:* £${booking.baseAmount.toLocaleString()}${extrasText}${discountText}${vatText}${grandTotalText}\n\n${breakdownText}${dueDateText}\n\nPlease transfer the balance to:\nAccount Name: ${bank.accountName}\nSort Code: ${bank.sortCode}\nAccount No: ${bank.accountNumber}\nReference: ${generateDisplayId(booking)}\n\nOnce paid, please send a screenshot of the transfer confirmation here. Thank you!`;
+    return `Hi ${booking.name.split(' ')[0]}, thank you for choosing Sangeetha Events Pinner for your ${booking.eventType}!\n\nHere is your final invoice summary:\n\n*Booking Ref:* ${generateDisplayId(booking)}\n*Package:* ${booking.selectedMenu || booking.package}\n\n${guestBreakdown}\n\n*Base Amount:* £${booking.baseAmount.toLocaleString()}${extrasText}${discountText}${vatText}${grandTotalText}\n\n${breakdownText}${dueDateText}\n\nPlease transfer the balance to:\nAccount Name: ${bank.accountName}\nSort Code: ${bank.sortCode}\nAccount No: ${bank.accountNumber}\nReference: ${generateDisplayId(booking)}\n\nOnce paid, please send a screenshot of the transfer confirmation here. Thank you!`;
   };
 
   const buildExtraInvoiceWhatsAppText = (booking: Booking, bank: typeof bankDetails) => {
@@ -1072,7 +1104,7 @@ It was an absolute pleasure serving you. We hope you and your guests had a wonde
 
     return `Hi ${booking.name.split(' ')[0]},
 
-Thank you for celebrating with us at Sangeetha Events Pinner! 🎉 We hope you had a fantastic time.
+Thank you for celebrating with us at Sangeetha Events Pinner! We hope you had a fantastic time.
 
 There were some additional adjustments/services added during your event:
 ${extrasList}
@@ -1085,7 +1117,7 @@ Sort Code: ${bank.sortCode}
 Account No: ${bank.accountNumber}
 Reference: ${generateDisplayId(booking)} (Extras)
 
-Once paid, please send a screenshot of the transfer confirmation here so we can finalize and close your booking. Thank you! 🙏`;
+Once paid, please send a screenshot of the transfer confirmation here so we can finalize and close your booking. Thank you!`;
   };
 
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -1467,26 +1499,114 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
     }
   };
 
-  const handleDeleteBooking = (id: string, name: string) => {
-    setBookingToDelete({ id, name });
+  // ── Unified Delete Modal & Bulk Operations ──
+  const openDeleteModal = (
+    ids: string[],
+    names: string[],
+    itemType: 'enquiry' | 'booking' | 'history' | 'direct_booking' | 'customer'
+  ) => {
+    if (!ids || ids.length === 0) return;
+    const isBulk = ids.length > 1;
+    let typeLabel = 'Record';
+    if (itemType === 'enquiry') typeLabel = isBulk ? 'Enquiries' : 'Enquiry';
+    else if (itemType === 'booking') typeLabel = isBulk ? 'Bookings' : 'Booking';
+    else if (itemType === 'history') typeLabel = isBulk ? 'History Records' : 'History Record';
+    else if (itemType === 'direct_booking') typeLabel = isBulk ? 'Direct Bookings' : 'Direct Booking';
+    else if (itemType === 'customer') typeLabel = isBulk ? 'Customers' : 'Customer';
+
+    const title = isBulk ? `Delete ${ids.length} ${typeLabel}` : `Delete ${typeLabel}`;
+    const description = isBulk
+      ? `Are you sure you want to permanently delete these ${ids.length} selected ${typeLabel.toLowerCase()}? This action cannot be undone.`
+      : `Are you sure you want to permanently delete the ${typeLabel.toLowerCase()} for "${names[0] || 'this record'}"? This action cannot be undone.`;
+
+    setDeleteModal({
+      isOpen: true,
+      title,
+      description,
+      itemCount: ids.length,
+      ids,
+      itemNames: names,
+    });
   };
 
-  const confirmDeleteBooking = async () => {
-    if (!bookingToDelete) return;
+  const handleConfirmDelete = async () => {
+    if (!deleteModal || deleteModal.ids.length === 0) return;
+    setIsDeleting(true);
+    const idsToDelete = [...deleteModal.ids];
     try {
-      await deleteDoc(doc(db, 'booking_requests', bookingToDelete.id));
-      await deleteDoc(doc(db, 'bookings', bookingToDelete.id));
-      setBookings(prev => prev.filter(b => b.id !== bookingToDelete.id));
-      if (selectedBooking?.id === bookingToDelete.id) {
+      await Promise.all(
+        idsToDelete.map(async (id) => {
+          try { await deleteDoc(doc(db, 'booking_requests', id)); } catch (_) {}
+          try { await deleteDoc(doc(db, 'bookings', id)); } catch (_) {}
+        })
+      );
+
+      setBookings(prev => prev.filter(b => !idsToDelete.includes(b.id)));
+
+      if (selectedBooking && idsToDelete.includes(selectedBooking.id)) {
         setSelectedBooking(null);
       }
-      setCustomAlert({ message: 'Booking deleted successfully', type: 'success' });
+      if (selectedCustomer) {
+        setSelectedCustomer(null);
+      }
+
+      setSelectedEnquiryIds(prev => prev.filter(id => !idsToDelete.includes(id)));
+      setSelectedBookingIds(prev => prev.filter(id => !idsToDelete.includes(id)));
+      setSelectedHistoryIds(prev => prev.filter(id => !idsToDelete.includes(id)));
+      setSelectedDirectBookingIds(prev => prev.filter(id => !idsToDelete.includes(id)));
+      setSelectedCustomerIds(prev => prev.filter(id => !idsToDelete.includes(id)));
+
+      setCustomAlert({
+        message: `${idsToDelete.length} ${idsToDelete.length === 1 ? 'record' : 'records'} deleted successfully.`,
+        type: 'success',
+      });
     } catch (error) {
-      console.error('Error deleting booking:', error);
-      setCustomAlert({ message: 'Error deleting booking. Please try again.', type: 'error' });
+      console.error('Error deleting records:', error);
+      setCustomAlert({ message: 'Error deleting records. Please try again.', type: 'error' });
     } finally {
-      setBookingToDelete(null);
+      setIsDeleting(false);
+      setDeleteModal(null);
     }
+  };
+
+  const handleDeleteBooking = (id: string, name: string) => {
+    openDeleteModal([id], [name], 'booking');
+  };
+
+  const handleDeleteCustomer = (customerId: string, customerName: string) => {
+    const matchingBookings = bookings.filter(b => {
+      const nameKey = (b.name || 'Unknown').trim().toLowerCase();
+      const contactKey = (b.email || b.phone || '').trim().toLowerCase();
+      return `${nameKey}_${contactKey}` === customerId;
+    });
+    const ids = matchingBookings.map(b => b.id);
+    setDeleteModal({
+      isOpen: true,
+      title: `Delete Customer: ${customerName}`,
+      description: `Are you sure you want to permanently delete customer profile "${customerName}" and all their ${ids.length} booking record${ids.length === 1 ? '' : 's'}? This action cannot be undone.`,
+      itemCount: ids.length,
+      ids,
+      itemNames: matchingBookings.map(b => `${b.eventType} (${b.date})`),
+    });
+  };
+
+  const handleBulkDeleteCustomers = () => {
+    if (selectedCustomerIds.length === 0) return;
+    const matchingBookings = bookings.filter(b => {
+      const nameKey = (b.name || 'Unknown').trim().toLowerCase();
+      const contactKey = (b.email || b.phone || '').trim().toLowerCase();
+      return selectedCustomerIds.includes(`${nameKey}_${contactKey}`);
+    });
+    const ids = matchingBookings.map(b => b.id);
+    const selectedCustomersList = customers.filter(c => selectedCustomerIds.includes(c.id));
+    setDeleteModal({
+      isOpen: true,
+      title: `Delete ${selectedCustomerIds.length} Customers`,
+      description: `Are you sure you want to permanently delete ${selectedCustomerIds.length} customer profiles and all their ${ids.length} associated booking records? This action cannot be undone.`,
+      itemCount: ids.length,
+      ids,
+      itemNames: selectedCustomersList.map(c => c.name),
+    });
   };
 
   
@@ -3246,24 +3366,81 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
 
               {showDirectBookingHistory ? (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 max-w-4xl mx-auto">
-                   <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-                     <Icon name="ClockIcon" size={24} className="text-indigo-600" />
-                     Direct Bookings History
-                   </h2>
+                   <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
+                     <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                       <Icon name="ClockIcon" size={24} className="text-indigo-600" />
+                       Direct Bookings History
+                     </h2>
+
+                     {directBookingsHistory.length > 0 && (
+                       <div className="flex items-center gap-2">
+                         <button
+                           type="button"
+                           onClick={() => {
+                             if (selectedDirectBookingIds.length === directBookingsHistory.length) {
+                               setSelectedDirectBookingIds([]);
+                             } else {
+                               setSelectedDirectBookingIds(directBookingsHistory.map(b => b.id));
+                             }
+                           }}
+                           className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+                         >
+                           <input
+                             type="checkbox"
+                             checked={selectedDirectBookingIds.length === directBookingsHistory.length && directBookingsHistory.length > 0}
+                             onChange={() => {}}
+                             className="rounded text-red-600 pointer-events-none"
+                           />
+                           <span>{selectedDirectBookingIds.length === directBookingsHistory.length ? 'Deselect All' : 'Select All'}</span>
+                         </button>
+
+                         {selectedDirectBookingIds.length > 0 && (
+                           <button
+                             type="button"
+                             onClick={() => {
+                               const selected = directBookingsHistory.filter(b => selectedDirectBookingIds.includes(b.id));
+                               openDeleteModal(
+                                 selectedDirectBookingIds,
+                                 selected.map(b => `${b.name} (#${b.id.slice(-6).toUpperCase()})`),
+                                 'direct_booking'
+                               );
+                             }}
+                             className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer"
+                           >
+                             <Icon name="TrashIcon" size={14} />
+                             Delete Selected ({selectedDirectBookingIds.length})
+                           </button>
+                         )}
+                       </div>
+                     )}
+                   </div>
                    {directBookingsHistory.length === 0 ? (
                      <div className="text-center text-gray-500 py-10 bg-gray-50 rounded-xl border border-gray-200">No direct bookings found.</div>
                    ) : (
                      <div className="space-y-3">
                        {directBookingsHistory.map(booking => (
-                         <div key={booking.id} onClick={() => setSelectedBooking(booking)} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-200 rounded-xl cursor-pointer transition-colors group gap-4">
-                           <div>
-                             <div className="font-bold text-gray-900 flex items-center gap-2">
-                               {booking.name} 
-                               <span className="text-xs px-2 py-0.5 rounded-md font-semibold bg-gray-200 text-gray-700">#{booking.id.slice(-6).toUpperCase()}</span>
-                             </div>
-                             <div className="text-sm text-gray-500 flex items-center gap-4 mt-1">
-                               <span className="flex items-center gap-1"><Icon name="CalendarDaysIcon" size={14} /> {booking.date}</span>
-                               <span className="flex items-center gap-1"><Icon name="MapPinIcon" size={14} /> {booking.eventType}</span>
+                         <div key={booking.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 hover:bg-indigo-50/60 border rounded-xl transition-all group gap-4 ${selectedDirectBookingIds.includes(booking.id) ? 'border-red-400 ring-2 ring-red-100' : 'border-gray-200'}`}>
+                           <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => setSelectedBooking(booking)}>
+                             <input
+                               type="checkbox"
+                               checked={selectedDirectBookingIds.includes(booking.id)}
+                               onChange={(e) => {
+                                 e.stopPropagation();
+                                 setSelectedDirectBookingIds(prev =>
+                                   prev.includes(booking.id) ? prev.filter(id => id !== booking.id) : [...prev, booking.id]
+                                 );
+                               }}
+                               className="w-4 h-4 rounded text-red-600 focus:ring-red-500 cursor-pointer flex-shrink-0"
+                             />
+                             <div>
+                               <div className="font-bold text-gray-900 flex items-center gap-2">
+                                 {booking.name} 
+                                 <span className="text-xs px-2 py-0.5 rounded-md font-semibold bg-gray-200 text-gray-700">#{booking.id.slice(-6).toUpperCase()}</span>
+                               </div>
+                               <div className="text-sm text-gray-500 flex items-center gap-4 mt-1">
+                                 <span className="flex items-center gap-1"><Icon name="CalendarDaysIcon" size={14} /> {booking.date}</span>
+                                 <span className="flex items-center gap-1"><Icon name="MapPinIcon" size={14} /> {booking.eventType}</span>
+                               </div>
                              </div>
                            </div>
                            <div className="flex items-center gap-3">
@@ -3273,7 +3450,20 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                              }`}>
                                {booking.status === 'completed' ? 'Completed' : booking.depositPaid ? 'Deposit Paid' : 'Pending Deposit'}
                              </div>
-                             <Icon name="ChevronRightIcon" size={20} className="text-gray-400 group-hover:text-indigo-600 transition-colors" />
+                             <button
+                               type="button"
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 openDeleteModal([booking.id], [`${booking.name} (#${booking.id.slice(-6).toUpperCase()})`], 'direct_booking');
+                               }}
+                               className="text-red-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                               title="Delete Direct Booking"
+                             >
+                               <Icon name="TrashIcon" size={16} />
+                             </button>
+                             <button type="button" onClick={() => setSelectedBooking(booking)} className="p-1 text-gray-400 hover:text-indigo-600 transition-colors">
+                               <Icon name="ChevronRightIcon" size={20} />
+                             </button>
                            </div>
                          </div>
                        ))}
@@ -3408,8 +3598,53 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
           {/* ─── ENQUIRIES ─── */}
           {activeTab === 'enquiries' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-500">{enquiries.length} new enquiries awaiting your response</p>
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900">Incoming Enquiries</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">{enquiries.length} new enquiries awaiting your response</p>
+                </div>
+
+                {enquiries.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (selectedEnquiryIds.length === enquiries.length) {
+                          setSelectedEnquiryIds([]);
+                        } else {
+                          setSelectedEnquiryIds(enquiries.map(e => e.id));
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedEnquiryIds.length === enquiries.length && enquiries.length > 0}
+                        onChange={() => {}}
+                        className="rounded text-red-600 pointer-events-none"
+                      />
+                      <span>{selectedEnquiryIds.length === enquiries.length ? 'Deselect All' : 'Select All'}</span>
+                    </button>
+
+                    {selectedEnquiryIds.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const selected = enquiries.filter(e => selectedEnquiryIds.includes(e.id));
+                          openDeleteModal(
+                            selectedEnquiryIds,
+                            selected.map(e => `${e.name} (${e.eventType})`),
+                            'enquiry'
+                          );
+                        }}
+                        className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Icon name="TrashIcon" size={14} />
+                        Delete Selected ({selectedEnquiryIds.length})
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
               {enquiries.length === 0 && (
                 <div className="bg-white rounded-xl border border-gray-200 py-16 text-center">
@@ -3418,9 +3653,20 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                 </div>
               )}
               {enquiries.map((b) => (
-                <div key={b.id} className="bg-white rounded-xl border border-gray-200 p-5">
+                <div key={b.id} className={`bg-white rounded-xl border p-5 transition-all ${selectedEnquiryIds.includes(b.id) ? 'border-red-400 ring-2 ring-red-100' : 'border-gray-200'}`}>
                   <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedEnquiryIds.includes(b.id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          setSelectedEnquiryIds(prev =>
+                            prev.includes(b.id) ? prev.filter(id => id !== b.id) : [...prev, b.id]
+                          );
+                        }}
+                        className="w-4 h-4 rounded text-red-600 focus:ring-red-500 cursor-pointer flex-shrink-0"
+                      />
                       <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(237, 28, 36,0.1)' }}>
                         <span className="text-base font-bold" style={{ color: '#ED1C24' }}>{b.name.charAt(0)}</span>
                       </div>
@@ -3471,24 +3717,36 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                     <div className="mt-3 bg-amber-50 border border-amber-100 rounded-lg px-4 py-2.5 text-sm text-amber-800">{b.notes}</div>
                   )}
 
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <a href={buildStep1EnquiryWhatsAppText(b)}
-                      target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
-                      style={{ background: '#25D366', color: 'white' }}>
-                      <Icon name="ChatBubbleLeftRightIcon" size={14} />
-                      Reply on WhatsApp
-                    </a>
-                    <button onClick={() => { updateStatus(b.id, 'menu_sent'); setShowMenuPanel(true); setSelectedBooking(b); }}
-                      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border transition-colors"
-                      style={{ borderColor: '#ED1C24', color: '#ED1C24' }}>
-                      <Icon name="ClipboardDocumentListIcon" size={14} />
-                      Send Menu & Advance
-                    </button>
-                    <button onClick={() => setSelectedBooking(b)}
-                      className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
-                      <Icon name="EyeIcon" size={14} />
-                      Full Details
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-100">
+                    <div className="flex flex-wrap gap-2">
+                      <a href={buildStep1EnquiryWhatsAppText(b)}
+                        target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
+                        style={{ background: '#25D366', color: 'white' }}>
+                        <Icon name="ChatBubbleLeftRightIcon" size={14} />
+                        Reply on WhatsApp
+                      </a>
+                      <button onClick={() => { updateStatus(b.id, 'menu_sent'); setShowMenuPanel(true); setSelectedBooking(b); }}
+                        className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border transition-colors cursor-pointer"
+                        style={{ borderColor: '#ED1C24', color: '#ED1C24' }}>
+                        <Icon name="ClipboardDocumentListIcon" size={14} />
+                        Send Menu & Advance
+                      </button>
+                      <button onClick={() => setSelectedBooking(b)}
+                        className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer">
+                        <Icon name="EyeIcon" size={14} />
+                        Full Details
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => openDeleteModal([b.id], [`${b.name} (${b.eventType})`], 'enquiry')}
+                      className="flex items-center gap-1 text-xs font-semibold px-2.5 py-2 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 transition-colors cursor-pointer"
+                      title="Delete Enquiry"
+                    >
+                      <Icon name="TrashIcon" size={14} />
+                      Delete
                     </button>
                   </div>
                 </div>
@@ -3497,115 +3755,182 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
           )}
 
           {/* ─── BOOKINGS ─── */}
-          {activeTab === 'bookings' && (
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-xl px-3 py-1.5 flex-wrap">
-                  <Icon name="FunnelIcon" size={14} className="text-gray-400" />
-                  <span className="text-xs text-gray-500 font-medium">Status:</span>
-                  {['all', ...STATUS_FLOW.filter(s => s !== 'new_enquiry' && s !== 'completed')].map((s) => (
-                    <button key={s} onClick={() => setFilterStatus(s)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium capitalize transition-colors ${filterStatus === s ? 'text-white' : 'text-gray-500 hover:bg-gray-100'}`}
-                      style={filterStatus === s ? { background: 'linear-gradient(135deg, #C62127 0%, #B71C1C 40%, #06874D 100%)' } : {}}>
-                      {s === 'all' ? 'All' : STATUS_LABELS[s as BookingStatus]}
-                    </button>
-                  ))}
-                </div>
-                <select value={filterEvent} onChange={(e) => setFilterEvent(e.target.value)} className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-600 focus:outline-none">
-                  <option value="all">All Event Types</option>
-                  {eventTypes.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
+          {activeTab === 'bookings' && (() => {
+            const visibleBookings = filtered.filter(b => b.status !== 'new_enquiry' && b.status !== 'completed');
+            const isAllVisibleSelected = visibleBookings.length > 0 && visibleBookings.every(b => selectedBookingIds.includes(b.id));
 
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm min-w-[750px]">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Customer</th>
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Event</th>
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Date</th>
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Amount</th>
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Discount</th>
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">WhatsApp</th>
-                        <th className="px-4 py-3"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {filtered.filter(b => b.status !== 'new_enquiry' && b.status !== 'completed').map((booking) => (
-                        <tr key={booking.id} className="hover:bg-gray-50/80 transition-colors">
-                          <td className="px-4 py-3.5">
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(237, 28, 36,0.1)' }}>
-                                <span className="text-xs font-bold" style={{ color: '#ED1C24' }}>{booking.name.charAt(0)}</span>
-                              </div>
-                              <div>
-                                <div className="font-medium text-gray-900 text-sm">{booking.name}</div>
-                                <div className="text-xs text-gray-400">{booking.phone}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <div className="text-sm text-gray-700">{booking.eventType}</div>
-                            <div className="text-xs text-gray-400">{booking.package}</div>
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <div className="text-sm text-gray-700">{booking.date}</div>
-                            <div className="text-xs text-gray-400">{booking.time}</div>
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <div className="text-sm font-semibold text-gray-900">£{getTotalAmount(booking).toLocaleString()}</div>
-                            {booking.depositPaid && <div className="text-xs text-emerald-600">Dep. paid</div>}
-                          </td>
-                          <td className="px-4 py-3.5">
-                            {booking.discount ? (
-                              <div className="text-sm font-semibold text-red-600">-£{getDiscountAmount(booking).toLocaleString()}</div>
-                            ) : (
-                              <div className="text-sm text-gray-400">—</div>
-                            )}
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[booking.status]}`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[booking.status]}`} />
-                              {STATUS_LABELS[booking.status]}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <a href={buildWhatsAppLink(booking.phone, `Hi ${booking.name.split(' ')[0]}, this is Sangeetha Events Pinner regarding your ${booking.eventType} booking on ${booking.date}.`)}
-                              target="_blank" rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg"
-                              style={{ background: '#25D366', color: 'white' }}>
-                              <Icon name="ChatBubbleLeftRightIcon" size={12} />
-                              Chat
-                            </a>
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <div className="flex items-center gap-3">
-                              <button onClick={() => setSelectedBooking(booking)} className="text-xs font-semibold flex items-center gap-1 hover:underline whitespace-nowrap" style={{ color: '#ED1C24' }}>
-                                Manage <Icon name="ChevronRightIcon" size={12} />
-                              </button>
-                              {currentUser?.role === 'Super Admin' && (
-                                <button onClick={() => handleDeleteBooking(booking.id, booking.name)} className="text-red-400 hover:text-red-600 p-1 rounded-lg hover:bg-red-50 transition-colors" title="Delete Booking">
-                                  <Icon name="TrashIcon" size={14} />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
+            return (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-xl px-3 py-1.5 flex-wrap">
+                      <Icon name="FunnelIcon" size={14} className="text-gray-400" />
+                      <span className="text-xs text-gray-500 font-medium">Status:</span>
+                      {['all', ...STATUS_FLOW.filter(s => s !== 'new_enquiry' && s !== 'completed')].map((s) => (
+                        <button key={s} onClick={() => setFilterStatus(s)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-medium capitalize transition-colors ${filterStatus === s ? 'text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+                          style={filterStatus === s ? { background: 'linear-gradient(135deg, #C62127 0%, #B71C1C 40%, #06874D 100%)' } : {}}>
+                          {s === 'all' ? 'All' : STATUS_LABELS[s as BookingStatus]}
+                        </button>
                       ))}
-                    </tbody>
-                  </table>
-                  {filtered.filter(b => b.status !== 'new_enquiry' && b.status !== 'completed').length === 0 && (
-                    <div className="text-center py-12 text-gray-400 text-sm">
-                      <Icon name="CalendarDaysIcon" size={32} className="mx-auto mb-2 text-gray-300" />
-                      No bookings match your filters
+                    </div>
+                    <select value={filterEvent} onChange={(e) => setFilterEvent(e.target.value)} className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-600 focus:outline-none">
+                      <option value="all">All Event Types</option>
+                      {eventTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+
+                  {selectedBookingIds.length > 0 && (
+                    <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-1.5">
+                      <span className="text-xs font-bold text-red-800">{selectedBookingIds.length} selected</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedBookingIds([])}
+                        className="text-xs text-gray-600 hover:text-gray-900 underline px-1 cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const selected = bookings.filter(b => selectedBookingIds.includes(b.id));
+                          openDeleteModal(
+                            selectedBookingIds,
+                            selected.map(b => `${b.name} (${b.eventType})`),
+                            'booking'
+                          );
+                        }}
+                        className="px-3 py-1 rounded-lg text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer ml-1"
+                      >
+                        <Icon name="TrashIcon" size={13} />
+                        Delete Selected ({selectedBookingIds.length})
+                      </button>
                     </div>
                   )}
                 </div>
+
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm min-w-[780px]">
+                      <thead className="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                          <th className="w-10 px-4 py-3 text-center">
+                            <input
+                              type="checkbox"
+                              checked={isAllVisibleSelected}
+                              onChange={() => {
+                                const visibleIds = visibleBookings.map(b => b.id);
+                                if (isAllVisibleSelected) {
+                                  setSelectedBookingIds(prev => prev.filter(id => !visibleIds.includes(id)));
+                                } else {
+                                  setSelectedBookingIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+                                }
+                              }}
+                              className="w-4 h-4 rounded text-red-600 focus:ring-red-500 cursor-pointer"
+                              title="Select/Deselect All Visible Bookings"
+                            />
+                          </th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Customer</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Event</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Date</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Amount</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Discount</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">WhatsApp</th>
+                          <th className="px-4 py-3 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {visibleBookings.map((booking) => (
+                          <tr key={booking.id} className={`hover:bg-gray-50/80 transition-colors ${selectedBookingIds.includes(booking.id) ? 'bg-red-50/40' : ''}`}>
+                            <td className="w-10 px-4 py-3.5 text-center">
+                              <input
+                                type="checkbox"
+                                checked={selectedBookingIds.includes(booking.id)}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedBookingIds(prev =>
+                                    prev.includes(booking.id) ? prev.filter(id => id !== booking.id) : [...prev, booking.id]
+                                  );
+                                }}
+                                className="w-4 h-4 rounded text-red-600 focus:ring-red-500 cursor-pointer"
+                              />
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(237, 28, 36,0.1)' }}>
+                                  <span className="text-xs font-bold" style={{ color: '#ED1C24' }}>{booking.name.charAt(0)}</span>
+                                </div>
+                                <div>
+                                  <div className="font-medium text-gray-900 text-sm">{booking.name}</div>
+                                  <div className="text-xs text-gray-400">{booking.phone}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <div className="text-sm text-gray-700">{booking.eventType}</div>
+                              <div className="text-xs text-gray-400">{booking.package}</div>
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <div className="text-sm text-gray-700">{booking.date}</div>
+                              <div className="text-xs text-gray-400">{booking.time}</div>
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <div className="text-sm font-semibold text-gray-900">£{getTotalAmount(booking).toLocaleString()}</div>
+                              {booking.depositPaid && <div className="text-xs text-emerald-600">Dep. paid</div>}
+                            </td>
+                            <td className="px-4 py-3.5">
+                              {booking.discount ? (
+                                <div className="text-sm font-semibold text-red-600">-£{getDiscountAmount(booking).toLocaleString()}</div>
+                              ) : (
+                                <div className="text-sm text-gray-400">—</div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[booking.status]}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[booking.status]}`} />
+                                {STATUS_LABELS[booking.status]}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <a href={buildWhatsAppLink(booking.phone, `Hi ${booking.name.split(' ')[0]}, this is Sangeetha Events Pinner regarding your ${booking.eventType} booking on ${booking.date}.`)}
+                                target="_blank" rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg"
+                                style={{ background: '#25D366', color: 'white' }}>
+                                <Icon name="ChatBubbleLeftRightIcon" size={12} />
+                                Chat
+                              </a>
+                            </td>
+                            <td className="px-4 py-3.5 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <button onClick={() => setSelectedBooking(booking)} className="text-xs font-semibold flex items-center gap-1 hover:underline whitespace-nowrap" style={{ color: '#ED1C24' }}>
+                                  Manage <Icon name="ChevronRightIcon" size={12} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => openDeleteModal([booking.id], [`${booking.name} (${booking.eventType})`], 'booking')}
+                                  className="text-red-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                                  title="Delete Booking"
+                                >
+                                  <Icon name="TrashIcon" size={15} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {visibleBookings.length === 0 && (
+                      <div className="text-center py-12 text-gray-400 text-sm">
+                        <Icon name="CalendarDaysIcon" size={32} className="mx-auto mb-2 text-gray-300" />
+                        No bookings match your filters
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ─── CALENDAR ─── */}
           {activeTab === 'calendar' && (
@@ -3700,65 +4025,128 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
           )}
 
           {/* ─── CUSTOMERS ─── */}
-          {activeTab === 'customers' && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="relative flex-1 max-w-sm">
-                  <Icon name="MagnifyingGlassIcon" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input type="text" placeholder="Search customers..." value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none bg-white" />
+          {activeTab === 'customers' && (() => {
+            const filteredCustomers = customers.filter(c => !customerSearch || c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.email.toLowerCase().includes(customerSearch.toLowerCase()) || c.phone.toLowerCase().includes(customerSearch.toLowerCase()));
+            const isAllVisibleSelected = filteredCustomers.length > 0 && filteredCustomers.every(c => selectedCustomerIds.includes(c.id));
+
+            return (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div className="relative flex-1 max-w-sm">
+                    <Icon name="MagnifyingGlassIcon" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input type="text" placeholder="Search customers..." value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none bg-white" />
+                  </div>
+
+                  {selectedCustomerIds.length > 0 && (
+                    <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-1.5">
+                      <span className="text-xs font-bold text-red-800">{selectedCustomerIds.length} customer{selectedCustomerIds.length === 1 ? '' : 's'} selected</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCustomerIds([])}
+                        className="text-xs text-gray-600 hover:text-gray-900 underline px-1 cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleBulkDeleteCustomers}
+                        className="px-3 py-1 rounded-lg text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer ml-1"
+                      >
+                        <Icon name="TrashIcon" size={13} />
+                        Delete Selected ({selectedCustomerIds.length})
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </div>
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm min-w-[600px]">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Customer</th>
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Contact</th>
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Bookings</th>
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Spent</th>
-                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Last Event</th>
-                        <th className="px-4 py-3"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {customers.filter(c => !customerSearch || c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.email.toLowerCase().includes(customerSearch.toLowerCase()) || c.phone.toLowerCase().includes(customerSearch.toLowerCase())).map((customer) => (
-                        <tr key={customer.id} className="hover:bg-gray-50/80 transition-colors">
-                          <td className="px-4 py-3.5">
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(237, 28, 36,0.1)' }}>
-                                <span className="text-sm font-bold" style={{ color: '#ED1C24' }}>{customer.name.charAt(0)}</span>
-                              </div>
-                              <div className="font-medium text-gray-900">{customer.name}</div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <div className="text-sm text-gray-600">{customer.email}</div>
-                            <div className="text-xs text-gray-400">{customer.phone}</div>
-                          </td>
-                          <td className="px-4 py-3.5 text-sm text-gray-700 font-medium">{customer.totalBookings}</td>
-                          <td className="px-4 py-3.5 text-sm font-semibold text-gray-900">{customer.totalSpent > 0 ? `£${customer.totalSpent.toLocaleString()}` : '—'}</td>
-                          <td className="px-4 py-3.5 text-xs text-gray-500">{customer.lastEvent}</td>
-                          <td className="px-4 py-3.5">
-                            <div className="flex items-center gap-2">
-                              <a href={buildWhatsAppLink(customer.phone, `Hi ${customer.name.split(' ')[0]}, this is Sangeetha Events Pinner. How can we help you today?`)}
-                                target="_blank" rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg"
-                                style={{ background: '#25D366', color: 'white' }}>
-                                <Icon name="ChatBubbleLeftRightIcon" size={12} />
-                                WhatsApp
-                              </a>
-                              <button onClick={() => setSelectedCustomer(customer)} className="text-xs font-semibold hover:underline" style={{ color: '#ED1C24' }}>View</button>
-                            </div>
-                          </td>
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm min-w-[650px]">
+                      <thead className="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                          <th className="w-10 px-4 py-3 text-center">
+                            <input
+                              type="checkbox"
+                              checked={isAllVisibleSelected}
+                              onChange={() => {
+                                const visibleIds = filteredCustomers.map(c => c.id);
+                                if (isAllVisibleSelected) {
+                                  setSelectedCustomerIds(prev => prev.filter(id => !visibleIds.includes(id)));
+                                } else {
+                                  setSelectedCustomerIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+                                }
+                              }}
+                              className="w-4 h-4 rounded text-red-600 focus:ring-red-500 cursor-pointer"
+                              title="Select/Deselect All Visible Customers"
+                            />
+                          </th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Customer</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Contact</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Bookings</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Spent</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Last Event</th>
+                          <th className="px-4 py-3 text-right">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {filteredCustomers.map((customer) => (
+                          <tr key={customer.id} className={`hover:bg-gray-50/80 transition-colors ${selectedCustomerIds.includes(customer.id) ? 'bg-red-50/40' : ''}`}>
+                            <td className="w-10 px-4 py-3.5 text-center">
+                              <input
+                                type="checkbox"
+                                checked={selectedCustomerIds.includes(customer.id)}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedCustomerIds(prev =>
+                                    prev.includes(customer.id) ? prev.filter(id => id !== customer.id) : [...prev, customer.id]
+                                  );
+                                }}
+                                className="w-4 h-4 rounded text-red-600 focus:ring-red-500 cursor-pointer"
+                              />
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(237, 28, 36,0.1)' }}>
+                                  <span className="text-sm font-bold" style={{ color: '#ED1C24' }}>{customer.name.charAt(0)}</span>
+                                </div>
+                                <div className="font-medium text-gray-900">{customer.name}</div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <div className="text-sm text-gray-600">{customer.email}</div>
+                              <div className="text-xs text-gray-400">{customer.phone}</div>
+                            </td>
+                            <td className="px-4 py-3.5 text-sm text-gray-700 font-medium">{customer.totalBookings}</td>
+                            <td className="px-4 py-3.5 text-sm font-semibold text-gray-900">{customer.totalSpent > 0 ? `£${customer.totalSpent.toLocaleString()}` : '—'}</td>
+                            <td className="px-4 py-3.5 text-xs text-gray-500">{customer.lastEvent}</td>
+                            <td className="px-4 py-3.5 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <a href={buildWhatsAppLink(customer.phone, `Hi ${customer.name.split(' ')[0]}, this is Sangeetha Events Pinner. How can we help you today?`)}
+                                  target="_blank" rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg"
+                                  style={{ background: '#25D366', color: 'white' }}>
+                                  <Icon name="ChatBubbleLeftRightIcon" size={12} />
+                                  WhatsApp
+                                </a>
+                                <button onClick={() => setSelectedCustomer(customer)} className="text-xs font-semibold hover:underline" style={{ color: '#ED1C24' }}>View</button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCustomer(customer.id, customer.name)}
+                                  className="text-red-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                                  title="Delete Customer & Bookings"
+                                >
+                                  <Icon name="TrashIcon" size={14} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ─── PAYMENTS ─── */}
           {activeTab === 'payments' && (
@@ -3881,65 +4269,127 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
           )}
 
           {/* ─── HISTORY ─── */}
-          {activeTab === 'history' && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="relative flex-1 max-w-sm">
-                  <Icon name="MagnifyingGlassIcon" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input type="text" placeholder="Search history..." value={historySearch} onChange={(e) => setHistorySearch(e.target.value)} className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none bg-white" />
+          {activeTab === 'history' && (() => {
+            const filteredHistory = completedBookings.filter(b => !historySearch || b.name.toLowerCase().includes(historySearch.toLowerCase()) || b.email.toLowerCase().includes(historySearch.toLowerCase()) || b.phone.toLowerCase().includes(historySearch.toLowerCase()) || b.eventType.toLowerCase().includes(historySearch.toLowerCase()));
+            const isAllVisibleSelected = filteredHistory.length > 0 && filteredHistory.every(b => selectedHistoryIds.includes(b.id));
+
+            return (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div className="relative flex-1 max-w-sm">
+                    <Icon name="MagnifyingGlassIcon" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input type="text" placeholder="Search history..." value={historySearch} onChange={(e) => setHistorySearch(e.target.value)} className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none bg-white" />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400 mr-1">{completedBookings.length} completed</span>
+
+                    {filteredHistory.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const visibleIds = filteredHistory.map(b => b.id);
+                          if (isAllVisibleSelected) {
+                            setSelectedHistoryIds(prev => prev.filter(id => !visibleIds.includes(id)));
+                          } else {
+                            setSelectedHistoryIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+                          }
+                        }}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isAllVisibleSelected}
+                          onChange={() => {}}
+                          className="rounded text-red-600 pointer-events-none"
+                        />
+                        <span>{isAllVisibleSelected ? 'Deselect All' : 'Select All'}</span>
+                      </button>
+                    )}
+
+                    {selectedHistoryIds.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const selected = bookings.filter(b => selectedHistoryIds.includes(b.id));
+                          openDeleteModal(
+                            selectedHistoryIds,
+                            selected.map(b => `${b.name} (${b.eventType} - ${b.date})`),
+                            'history'
+                          );
+                        }}
+                        className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Icon name="TrashIcon" size={14} />
+                        Delete Selected ({selectedHistoryIds.length})
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <span className="text-xs text-gray-400">{completedBookings.length} completed</span>
-              </div>
-              {completedBookings.filter(b => !historySearch || b.name.toLowerCase().includes(historySearch.toLowerCase()) || b.email.toLowerCase().includes(historySearch.toLowerCase()) || b.phone.toLowerCase().includes(historySearch.toLowerCase()) || b.eventType.toLowerCase().includes(historySearch.toLowerCase())).map((b) => (
-                <div key={b.id} className="bg-white rounded-xl border border-gray-200 p-5">
-                  <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(237, 28, 36,0.1)' }}>
-                        <span className="text-base font-bold" style={{ color: '#ED1C24' }}>{b.name.charAt(0)}</span>
+                {filteredHistory.map((b) => (
+                  <div key={b.id} className={`bg-white rounded-xl border p-5 transition-all ${selectedHistoryIds.includes(b.id) ? 'border-red-400 ring-2 ring-red-100' : 'border-gray-200'}`}>
+                    <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedHistoryIds.includes(b.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            setSelectedHistoryIds(prev =>
+                              prev.includes(b.id) ? prev.filter(id => id !== b.id) : [...prev, b.id]
+                            );
+                          }}
+                          className="w-4 h-4 rounded text-red-600 focus:ring-red-500 cursor-pointer flex-shrink-0"
+                        />
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(237, 28, 36,0.1)' }}>
+                          <span className="text-base font-bold" style={{ color: '#ED1C24' }}>{b.name.charAt(0)}</span>
+                        </div>
+                        <div>
+                          <div className="font-semibold text-gray-900">{b.name}</div>
+                          <div className="text-xs text-gray-400">{b.email} · {b.phone}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-semibold text-gray-900">{b.name}</div>
-                        <div className="text-xs text-gray-400">{b.email} · {b.phone}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[b.status]}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[b.status]}`} />
-                        {STATUS_LABELS[b.status]}
-                      </span>
-                      <button
-                        onClick={() => downloadMenuSelectionPDF(b)}
-                        className="text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 p-1.5 px-3 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-bold border border-indigo-200 shadow-sm"
-                        title="Download Menu PDF"
-                      >
-                        <Icon name="DocumentTextIcon" size={14} />
-                        Menu PDF
-                      </button>
-                      <button
-                        onClick={() => downloadInvoicePDF(b, true)}
-                        className="text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 p-1.5 px-3 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-bold border border-amber-200 shadow-sm"
-                        title="Download Deposit Invoice"
-                      >
-                        <Icon name="ArrowDownTrayIcon" size={14} />
-                        Deposit Invoice
-                      </button>
-                      {b.status === 'completed' && (
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[b.status]}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[b.status]}`} />
+                          {STATUS_LABELS[b.status]}
+                        </span>
                         <button
-                          onClick={() => downloadInvoicePDF(b)}
+                          onClick={() => downloadMenuSelectionPDF(b)}
+                          className="text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 p-1.5 px-3 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-bold border border-indigo-200 shadow-sm"
+                          title="Download Menu PDF"
+                        >
+                          <Icon name="DocumentTextIcon" size={14} />
+                          Menu PDF
+                        </button>
+                        <button
+                          onClick={() => downloadInvoicePDF(b, true)}
                           className="text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 p-1.5 px-3 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-bold border border-amber-200 shadow-sm"
-                          title="Download Invoice PDF"
+                          title="Download Deposit Invoice"
                         >
                           <Icon name="ArrowDownTrayIcon" size={14} />
-                          Final Invoice
+                          Deposit Invoice
                         </button>
-                      )}
-                      {currentUser?.role === 'Super Admin' && (
-                        <button onClick={() => handleDeleteBooking(b.id, b.name)} className="text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors" title="Delete History Record">
+                        {b.status === 'completed' && (
+                          <button
+                            onClick={() => downloadInvoicePDF(b)}
+                            className="text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 p-1.5 px-3 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-bold border border-amber-200 shadow-sm"
+                            title="Download Invoice PDF"
+                          >
+                            <Icon name="ArrowDownTrayIcon" size={14} />
+                            Final Invoice
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => openDeleteModal([b.id], [`${b.name} (${b.eventType} - ${b.date})`], 'history')}
+                          className="text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors cursor-pointer"
+                          title="Delete History Record"
+                        >
                           <Icon name="TrashIcon" size={14} />
                         </button>
-                      )}
+                      </div>
                     </div>
-                  </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                     {[
                       { label: 'Event Type', value: b.eventType },
@@ -4025,7 +4475,8 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                 </div>
               )}
             </div>
-          )}
+            );
+          })()}
 
           {/* ─── SETTINGS ─── */}
           {activeTab === 'settings' && (
@@ -5502,7 +5953,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                             <div className="text-sm font-medium text-gray-900">{pkg.name}</div>
                             <div className="text-xs text-gray-500">£{pkg.pricePerPerson}/person · Est. £{estTotal.toLocaleString()} for {totalGuests} guests</div>
                           </div>
-                          <a href={buildWhatsAppLink(selectedBooking.phone, `Hi ${selectedBooking.name.split(' ')[0]}, here is our *${pkg.name}* at *£${pkg.pricePerPerson}/person* (Excl. VAT):\n\n*Included Items:*\n${(pkg.items || []).map((item: string) => `• ${item}`).join('\\n')}${pkg.guestLabel ? `\n\n ${pkg.guestLabel}` : ''}${pkg.complimentary ? `\n ${pkg.complimentary}` : ''}\n\nFor ${adults} Adults and ${kids4to10} Kids, estimated total: *£${estTotal.toLocaleString()}* (Excl. VAT)\n\n*Kids Pricing*:\n${editableKidsPricing.map((kp: any) => `${kp.ageRange}: ${kp.price}`).join('\\n')}\n\n*Extras Available:*\n${editableExtras.map((e: any) => `• ${e.name}: £${e.price}`).join('\\n')}\n\n${WHATSAPP_TERMS_TEXT}\n\nPlease reply with your selection! 🙏`)}
+                          <a href={buildWhatsAppLink(selectedBooking.phone, `Hi ${selectedBooking.name.split(' ')[0]}, here is our *${pkg.name}* at *£${pkg.pricePerPerson}/person* (Excl. VAT):\n\n*Included Items:*\n${(pkg.items || []).map((item: string) => `• ${item}`).join('\\n')}${pkg.guestLabel ? `\n\n ${pkg.guestLabel}` : ''}${pkg.complimentary ? `\n ${pkg.complimentary}` : ''}\n\nFor ${adults} Adults and ${kids4to10} Kids, estimated total: *£${estTotal.toLocaleString()}* (Excl. VAT)\n\n*Kids Pricing*:\n${editableKidsPricing.map((kp: any) => `${kp.ageRange}: ${kp.price}`).join('\\n')}\n\n*Extras Available:*\n${editableExtras.map((e: any) => `• ${e.name}: £${e.price}`).join('\\n')}\n\n${WHATSAPP_TERMS_TEXT}\n\nPlease reply with your selection! Thank you!`)}
                             target="_blank" rel="noopener noreferrer"
                             className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg flex-shrink-0 ml-2"
                             style={{ background: '#25D366', color: 'white' }}>
@@ -6984,7 +7435,7 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
               )}
               {selectedBooking.status === 'event_scheduled' && (
                 <div className="space-y-2">
-                  <a href={buildWhatsAppLink(selectedBooking.phone, `Hi ${selectedBooking.name.split(' ')[0]}, just a reminder — your ${selectedBooking.eventType} at Sangeetha Events Pinner is coming up on *${selectedBooking.date}* at *${selectedBooking.time}*!\n\nWe look forward to seeing you and serving your guests! 🎉`)}
+                  <a href={buildWhatsAppLink(selectedBooking.phone, `Hi ${selectedBooking.name.split(' ')[0]}, just a reminder — your ${selectedBooking.eventType} at Sangeetha Events Pinner is coming up on *${selectedBooking.date}* at *${selectedBooking.time}*!\n\nWe look forward to seeing you and serving your guests!`)}
                     target="_blank" rel="noopener noreferrer"
                     className="w-full flex items-center justify-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-xl"
                     style={{ background: '#25D366', color: 'white' }}>
@@ -7156,6 +7607,17 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                   </button>
                 </div>
               )}
+
+              <div className="pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => openDeleteModal([selectedBooking.id], [`${selectedBooking.name} (${selectedBooking.eventType})`], 'booking')}
+                  className="w-full flex items-center justify-center gap-2 text-xs font-semibold py-2.5 px-4 rounded-xl text-red-600 hover:text-white bg-red-50 hover:bg-red-600 border border-red-200 transition-all cursor-pointer"
+                >
+                  <Icon name="TrashIcon" size={15} />
+                  Permanently Delete This Booking
+                </button>
+              </div>
             </div>
             </>
             )}
@@ -7233,32 +7695,77 @@ Once paid, please send a screenshot of the transfer confirmation here so we can 
                   ))}
                 </div>
               </div>
+
+              <div className="pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => handleDeleteCustomer(selectedCustomer.id, selectedCustomer.name)}
+                  className="w-full flex items-center justify-center gap-2 text-xs font-semibold py-2.5 px-4 rounded-xl text-red-600 hover:text-white bg-red-50 hover:bg-red-600 border border-red-200 transition-all cursor-pointer"
+                >
+                  <Icon name="TrashIcon" size={15} />
+                  Delete Customer &amp; Associated Bookings
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* ─── DELETE CONFIRMATION MODAL ─── */}
-      {bookingToDelete && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm border border-gray-100 flex flex-col items-center text-center animate-in fade-in zoom-in duration-200">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4 bg-rose-50 text-rose-500">
-              <Icon name="TrashIcon" size={24} />
+      {/* ─── ENHANCED DELETE CONFIRMATION MODAL ─── */}
+      {deleteModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md border border-gray-100 flex flex-col items-center text-center animate-in zoom-in-95 duration-200">
+            <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4 bg-rose-50 text-rose-600 ring-8 ring-rose-50/50">
+              <Icon name="TrashIcon" size={26} />
             </div>
-            <h3 className="text-base font-bold text-gray-900 mb-1">Delete Booking</h3>
-            <p className="text-sm text-gray-500 mb-6">Are you sure you want to permanently delete the booking for <span className="font-semibold text-gray-900">{bookingToDelete.name}</span>? This action cannot be undone.</p>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">{deleteModal.title}</h3>
+            <p className="text-sm text-gray-500 mb-4">{deleteModal.description}</p>
+
+            {deleteModal.itemNames && deleteModal.itemNames.length > 0 && (
+              <div className="w-full bg-gray-50 rounded-xl p-3 mb-5 max-h-36 overflow-y-auto border border-gray-200 text-left text-xs text-gray-700 space-y-1">
+                <div className="font-semibold text-gray-400 uppercase tracking-wider text-[10px] mb-1.5">
+                  Items to be permanently removed:
+                </div>
+                {deleteModal.itemNames.slice(0, 8).map((name, i) => (
+                  <div key={i} className="flex items-center gap-2 truncate">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 flex-shrink-0" />
+                    <span className="truncate font-medium text-gray-800">{name}</span>
+                  </div>
+                ))}
+                {deleteModal.itemNames.length > 8 && (
+                  <div className="text-gray-400 italic text-[11px] pt-1 pl-3.5">
+                    + {deleteModal.itemNames.length - 8} more record{deleteModal.itemNames.length - 8 === 1 ? '' : 's'}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-3 w-full">
               <button
-                onClick={() => setBookingToDelete(null)}
-                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setDeleteModal(null)}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50 cursor-pointer"
               >
                 Cancel
               </button>
               <button
-                onClick={confirmDeleteBooking}
-                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 transition-colors shadow-sm"
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmDelete}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
               >
-                Delete
+                {isDeleting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Icon name="TrashIcon" size={16} />
+                    <span>Confirm Delete</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

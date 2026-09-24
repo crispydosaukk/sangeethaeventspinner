@@ -1024,16 +1024,16 @@ export default function ManualBookingForm({
     }
   };
 
-  // Helper WhatsApp Quote
-  const generateWhatsAppQuoteText = () => {
+  // Helper WhatsApp Quote (Clean, universal formatting without emojis that turn into question marks on Windows / WhatsApp Desktop)
+  const generateWhatsAppQuoteText = (encode: boolean = false) => {
     const firstName = customerDetails.name.split(' ')[0] || 'Customer';
     let text = `Hi ${firstName}, here is your event quote from *Sangeetha Events Pinner*:\n\n`;
-    text += `📅 *Date:* ${customerDetails.date} (${customerDetails.timeSession})\n`;
-    text += `👥 *Guests:* ${customerDetails.adults} Adults · ${customerDetails.kids4to10} Kids · ${customerDetails.kidsUnder4} Infants (Total ${totalGuests})\n`;
-    text += `🍱 *Package:* ${currentPackage?.name} at £${effectivePackagePrice}/adult · £${effectiveKidsPrice}/kid\n\n`;
+    text += `• *Date:* ${customerDetails.date} (${customerDetails.timeSession})\n`;
+    text += `• *Guests:* ${customerDetails.adults} Adults · ${customerDetails.kids4to10} Kids · ${customerDetails.kidsUnder4} Infants (Total ${totalGuests})\n`;
+    text += `• *Package:* ${currentPackage?.name} at £${effectivePackagePrice}/adult · £${effectiveKidsPrice}/kid\n\n`;
 
     if (addOnMenuItems.length > 0) {
-      text += `✨ *Add-on Dishes:*\n`;
+      text += `*Add-on Dishes:*\n`;
       addOnMenuItems.forEach(item => {
         text += `• ${item.name} (${item.costType === 'per_person' ? `+£${item.cost}/guest` : `+£${item.cost} flat`})\n`;
       });
@@ -1041,7 +1041,7 @@ export default function ManualBookingForm({
     }
 
     if (extraChargesList.length > 0) {
-      text += `🚚 *Logistics & Extra Charges:*\n`;
+      text += `*Logistics & Extra Charges:*\n`;
       extraChargesList.forEach(ec => {
         text += `• ${ec.label}: £${ec.amount}${ec.reason ? ` (${ec.reason})` : ''}\n`;
       });
@@ -1049,7 +1049,7 @@ export default function ManualBookingForm({
     }
 
     if (selectedExtras.length > 0) {
-      text += `🎪 *Live Counters & Extras:*\n`;
+      text += `*Live Counters & Extras:*\n`;
       selectedExtras.forEach(ex => {
         text += `• ${ex.name}: £${ex.price}\n`;
       });
@@ -1057,13 +1057,23 @@ export default function ManualBookingForm({
     }
 
     if (discountAmount > 0) {
-      text += `🏷️ *Discount Applied:* -£${discountAmount.toLocaleString()}${discountReason ? ` (${discountReason})` : ''}\n\n`;
+      text += `• *Discount Applied:* -£${discountAmount.toLocaleString()}${discountReason ? ` (${discountReason})` : ''}\n\n`;
     }
 
-    text += `💰 *Estimated Total:* £${grandTotal.toLocaleString()} (Excl. VAT)\n`;
-    text += `💳 *Deposit Required:* £${effectiveDeposit.toLocaleString()}\n\n`;
-    text += `Please reply to confirm and secure your event date! 🙏`;
-    return encodeURIComponent(text);
+    text += `• *Estimated Total:* £${grandTotal.toLocaleString()} (Excl. VAT)\n`;
+    text += `• *Deposit Required:* £${effectiveDeposit.toLocaleString()}\n\n`;
+    text += `Please reply to confirm and secure your event date! Thank you.`;
+    return encode ? encodeURIComponent(text) : text;
+  };
+
+  const getCleanWhatsAppPhone = () => {
+    let cleaned = (customerDetails.phone || '').replace(/\D/g, '');
+    if (cleaned.startsWith('0') && cleaned.length === 11) {
+      cleaned = '44' + cleaned.slice(1);
+    } else if (cleaned.startsWith('7') && cleaned.length === 10) {
+      cleaned = '44' + cleaned;
+    }
+    return cleaned;
   };
 
   return (
@@ -2911,10 +2921,10 @@ export default function ManualBookingForm({
                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
                   <span className="text-xs text-gray-500 block">Event Schedule</span>
                   <span className="text-sm font-extrabold text-gray-900 block mt-1">
-                    📅 {customerDetails.date} ({customerDetails.timeSession})
+                    {customerDetails.date} ({customerDetails.timeSession})
                   </span>
                   <span className="text-xs text-gray-600 mt-1 block">
-                    👥 {customerDetails.adults} Adults · {customerDetails.kids4to10} Kids
+                    {customerDetails.adults} Adults · {customerDetails.kids4to10} Kids
                   </span>
                 </div>
 
@@ -3149,7 +3159,7 @@ export default function ManualBookingForm({
 
               <div className="flex flex-wrap items-center gap-2">
                 <a
-                  href={`https://wa.me/${customerDetails.phone.replace(/\D/g, '')}?text=${generateWhatsAppQuoteText()}`}
+                  href={`https://api.whatsapp.com/send?phone=${getCleanWhatsAppPhone()}&text=${generateWhatsAppQuoteText(true)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-4 py-2 rounded-xl font-bold text-xs text-white bg-[#25D366] hover:bg-[#1EBE5D] transition-colors flex items-center gap-1.5 shadow-2xs"
@@ -3157,6 +3167,19 @@ export default function ManualBookingForm({
                   <Icon name="ChatBubbleLeftRightIcon" size={15} />
                   Send WhatsApp Quote
                 </a>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(generateWhatsAppQuoteText(false));
+                    setCustomAlert({ message: 'Quote copied to clipboard (clean text without question marks)!', type: 'success' });
+                  }}
+                  className="px-3.5 py-2 rounded-xl font-bold text-xs text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-300 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  title="Copy quote message to clipboard"
+                >
+                  <Icon name="DocumentDuplicateIcon" size={15} className="text-gray-600" />
+                  Copy Quote
+                </button>
 
                 {downloadInvoicePDF && (
                   <>

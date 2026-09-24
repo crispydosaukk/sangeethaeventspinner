@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     const info = await transporter.sendMail({
       from: sender,
       to: testRecipient.trim(),
-      subject: '✅ Sangeetha Events: SMTP Mail Server Test Succeeded',
+      subject: '[Success] Sangeetha Events: SMTP Mail Server Test Succeeded',
       html: testHtml,
     });
 

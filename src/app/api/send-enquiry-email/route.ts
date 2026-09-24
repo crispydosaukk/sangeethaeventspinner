@@ -99,9 +99,10 @@ export async function POST(req: NextRequest) {
     const sender = `"${smtp.fromName || 'Sangeetha Events Pinner'}" <${smtp.fromEmail || smtp.user}>`;
 
     // 6. Format Admin Notification Email
-    const adminSubject = `✨ New Enquiry: ${name || 'Customer'} - ${eventType || 'Catering'} on ${date || 'TBD'}`;
+    const adminSubject = `[New Enquiry] ${name || 'Customer'} - ${eventType || 'Catering'} on ${date || 'TBD'}`;
     const cleanPhone = (phone || '').replace(/[^0-9+]/g, '');
-    const whatsappLink = cleanPhone ? `https://wa.me/${cleanPhone.replace('+', '')}` : '';
+    const cleanWhatsAppDigits = cleanPhone.replace(/\D/g, '');
+    const whatsappLink = cleanWhatsAppDigits ? `https://api.whatsapp.com/send?phone=${cleanWhatsAppDigits}` : '';
 
     const guestsBreakdown = [
       adults !== undefined && adults !== null ? `${adults} Adults` : null,
@@ -135,7 +136,7 @@ export async function POST(req: NextRequest) {
           <tr>
             <td style="background: linear-gradient(135deg, #1E1B18 0%, #2A1717 100%); padding: 30px 20px; text-align: center; border-bottom: 3px solid #ED1C24;">
               <span style="display: inline-block; background: rgba(237, 28, 36, 0.2); color: #F87171; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; padding: 5px 14px; border-radius: 20px; border: 1px solid rgba(237, 28, 36, 0.4); margin-bottom: 12px;">
-                🔔 NEW BOOKING ENQUIRY
+                NEW BOOKING ENQUIRY
               </span>
               <h1 style="color: #FFFFFF; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 0.3px;">
                 Sangeetha Events Pinner
@@ -155,7 +156,7 @@ export async function POST(req: NextRequest) {
                 <tr>
                   <td style="padding: 14px 18px; background-color: #F1F5F9; border-bottom: 1px solid #E2E8F0;">
                     <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">
-                      👤 Customer Details
+                      Customer Details
                     </span>
                   </td>
                 </tr>
@@ -194,7 +195,7 @@ export async function POST(req: NextRequest) {
                 <tr>
                   <td style="padding: 14px 18px; background-color: #FFEDD5; border-bottom: 1px solid #FED7AA;">
                     <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #9A3412;">
-                      📅 Event &amp; Catering Specifications
+                      Event &amp; Catering Specifications
                     </span>
                   </td>
                 </tr>
@@ -214,22 +215,22 @@ export async function POST(req: NextRequest) {
                       <tr>
                         <td width="50%" style="padding-bottom: 12px; vertical-align: top;">
                           <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #7C2D12;">Event Date</div>
-                          <div style="font-size: 14px; font-weight: 800; color: #DC2626;">📅 ${date || 'To be confirmed'}</div>
+                          <div style="font-size: 14px; font-weight: 800; color: #DC2626;">${date || 'To be confirmed'}</div>
                         </td>
                         <td width="50%" style="padding-bottom: 12px; vertical-align: top;">
                           <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #7C2D12;">Time Slot</div>
-                          <div style="font-size: 14px; font-weight: 800; color: #0F172A;">⏰ ${timeOfDay || 'Flexible'}</div>
+                          <div style="font-size: 14px; font-weight: 800; color: #0F172A;">${timeOfDay || 'Flexible'}</div>
                         </td>
                       </tr>
                       <tr>
                         <td width="50%" style="padding-bottom: 12px; vertical-align: top;">
                           <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #7C2D12;">Guests Count</div>
-                          <div style="font-size: 14px; font-weight: 800; color: #0F172A;">👥 ${guests || 'N/A'} Guests</div>
+                          <div style="font-size: 14px; font-weight: 800; color: #0F172A;">${guests || 'N/A'} Guests</div>
                           ${guestsBreakdown ? `<div style="font-size: 11px; color: #64748B; margin-top: 2px;">${guestsBreakdown}</div>` : ''}
                         </td>
                         <td width="50%" style="padding-bottom: 12px; vertical-align: top;">
                           <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #7C2D12;">Postcode / Address</div>
-                          <div style="font-size: 13px; font-weight: 700; color: #0F172A;">📍 ${postCode || address || 'N/A'}</div>
+                          <div style="font-size: 13px; font-weight: 700; color: #0F172A;">${postCode || address || 'N/A'}</div>
                         </td>
                       </tr>
                     </table>
@@ -257,12 +258,12 @@ export async function POST(req: NextRequest) {
                   ${whatsappLink ? `
                   <td align="center" style="padding: 4px;">
                     <a href="${whatsappLink}" target="_blank" style="display: inline-block; background-color: #16A34A; color: #FFFFFF; font-size: 13px; font-weight: 800; padding: 12px 24px; border-radius: 10px; text-decoration: none;">
-                      💬 Open Customer Chat on WhatsApp
+                      Open Customer Chat on WhatsApp
                     </a>
                   </td>` : ''}
                   <td align="center" style="padding: 4px;">
                     <a href="tel:${cleanPhone}" style="display: inline-block; background-color: #ED1C24; color: #FFFFFF; font-size: 13px; font-weight: 800; padding: 12px 24px; border-radius: 10px; text-decoration: none;">
-                      📞 Call Customer Now
+                      Call Customer Now
                     </a>
                   </td>
                 </tr>
@@ -339,7 +340,7 @@ export async function POST(req: NextRequest) {
                 <tr>
                   <td style="padding: 12px 16px; background-color: #F1F5F9; border-bottom: 1px solid #E2E8F0;">
                     <span style="font-size: 12px; font-weight: 800; text-transform: uppercase; color: #B91C1C;">
-                      📋 Your Enquiry Summary
+                      Your Enquiry Summary
                     </span>
                   </td>
                 </tr>
@@ -353,17 +354,17 @@ export async function POST(req: NextRequest) {
                         </td>
                         <td width="50%" style="padding-bottom: 8px;">
                           <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #64748B;">Requested Date</div>
-                          <div style="font-size: 13px; font-weight: 700; color: #DC2626;">📅 ${date || 'To be confirmed'}</div>
+                          <div style="font-size: 13px; font-weight: 700; color: #DC2626;">${date || 'To be confirmed'}</div>
                         </td>
                       </tr>
                       <tr>
                         <td width="50%" style="padding-bottom: 8px;">
                           <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #64748B;">Time Slot</div>
-                          <div style="font-size: 13px; font-weight: 700; color: #0F172A;">⏰ ${timeOfDay || 'Flexible'}</div>
+                          <div style="font-size: 13px; font-weight: 700; color: #0F172A;">${timeOfDay || 'Flexible'}</div>
                         </td>
                         <td width="50%" style="padding-bottom: 8px;">
                           <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #64748B;">Guests</div>
-                          <div style="font-size: 13px; font-weight: 700; color: #0F172A;">👥 ${guests || 'N/A'}</div>
+                          <div style="font-size: 13px; font-weight: 700; color: #0F172A;">${guests || 'N/A'}</div>
                         </td>
                       </tr>
                     </table>
@@ -381,8 +382,8 @@ export async function POST(req: NextRequest) {
               </p>
 
               <div style="text-align: center; margin-bottom: 20px;">
-                <a href="https://wa.me/447700900000?text=${encodeURIComponent(`Hi Sangeetha Events, I submitted an enquiry for ${date || 'my event'}. Could we discuss my menu?`)}" target="_blank" style="display: inline-block; background-color: #16A34A; color: #FFFFFF; font-size: 13px; font-weight: 800; padding: 11px 22px; border-radius: 8px; text-decoration: none;">
-                  💬 Chat with Our Event Planner on WhatsApp
+                <a href="https://api.whatsapp.com/send?phone=447507271506&text=${encodeURIComponent(`Hi Sangeetha Events, I submitted an enquiry for ${date || 'my event'}. Could we discuss my menu?`)}" target="_blank" style="display: inline-block; background-color: #16A34A; color: #FFFFFF; font-size: 13px; font-weight: 800; padding: 11px 22px; border-radius: 8px; text-decoration: none;">
+                  Chat with Our Event Planner on WhatsApp
                 </a>
               </div>
 
