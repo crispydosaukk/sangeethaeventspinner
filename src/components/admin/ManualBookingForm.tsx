@@ -1010,6 +1010,35 @@ export default function ManualBookingForm({
         finalDocId = docRef.id;
         await setDoc(doc(db, 'bookings', docRef.id), { ...bookingPayload, id: docRef.id });
         setInternalId(docRef.id);
+        
+        // Dispatch email notification to admins (and customer if configured)
+        try {
+          fetch('/api/send-enquiry-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              bookingId: docRef.id,
+              name: customerDetails.name,
+              email: customerDetails.email,
+              phone: customerDetails.phone,
+              eventType: customerDetails.eventType,
+              serviceType: customerDetails.serviceType,
+              date: customerDetails.date,
+              timeOfDay: customerDetails.timeSession,
+              guests: totalGuests,
+              adults: customerDetails.adults,
+              kids4to10: customerDetails.kids4to10,
+              kidsUnder4: customerDetails.kidsUnder4,
+              selectedPackage: currentPackage?.name,
+              postCode: customerDetails.postCode,
+              address: customerDetails.address,
+              baseAmount: foodBaseAmount,
+              deposit: effectiveDeposit,
+              message: customerDetails.notes,
+            }),
+          }).catch(() => {});
+        } catch (_) {}
+
         setCustomAlert({ message: `Manual booking #${docRef.id.slice(-6).toUpperCase()} created successfully!`, type: 'success' });
         if (onBookingCreated) onBookingCreated({ ...bookingPayload, id: docRef.id });
       }

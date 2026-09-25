@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import path from 'path';
+import fs from 'fs';
 import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import {
   DEFAULT_EMAIL_NOTIFICATION_CONFIG,
   EmailNotificationConfig,
@@ -32,6 +34,20 @@ export async function POST(req: NextRequest) {
       baseAmount,
       deposit,
     } = body;
+
+    // Check if Firebase Cloud Functions already processed this booking
+    if (bookingId) {
+      try {
+        const snapExisting = await getDoc(doc(db, 'booking_requests', bookingId));
+        if (snapExisting.exists() && snapExisting.data()?.emailNotificationSent) {
+          return NextResponse.json({
+            success: true,
+            skipped: true,
+            message: 'Email notification already dispatched by Firebase Cloud Functions.',
+          });
+        }
+      } catch (_) {}
+    }
 
     const packageChosen = selectedPackage || pkgName || 'Not Selected';
 
@@ -98,8 +114,22 @@ export async function POST(req: NextRequest) {
 
     const sender = `"${smtp.fromName || 'Sangeetha Events Pinner'}" <${smtp.fromEmail || smtp.user}>`;
 
-    // 6. Format Admin Notification Email
-    const adminSubject = `[New Enquiry] ${name || 'Customer'} - ${eventType || 'Catering'} on ${date || 'TBD'}`;
+    // 6. Logo configuration (embedded CID with online fallback)
+    const logoFilePath = path.join(process.cwd(), 'public', 'assets', 'images', 'sangeetha-logo.png');
+    const hasLocalLogo = fs.existsSync(logoFilePath);
+    const logoSrc = hasLocalLogo ? 'cid:sangeethalogo' : 'https://svrpinnerevents.co.uk/assets/images/sangeetha-logo.png';
+    const emailAttachments = hasLocalLogo
+      ? [
+          {
+            filename: 'sangeetha-logo.png',
+            path: logoFilePath,
+            cid: 'sangeethalogo',
+          },
+        ]
+      : [];
+
+    // 7. Format Admin Notification Email
+    const adminSubject = `[New Order] ${name || 'Customer'} - ${eventType || 'Catering'} on ${date || 'TBD'}`;
     const cleanPhone = (phone || '').replace(/[^0-9+]/g, '');
     const cleanWhatsAppDigits = cleanPhone.replace(/\D/g, '');
     const whatsappLink = cleanWhatsAppDigits ? `https://api.whatsapp.com/send?phone=${cleanWhatsAppDigits}` : '';
@@ -116,7 +146,7 @@ export async function POST(req: NextRequest) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>New Booking Enquiry</title>
+  <title>New Booking Order</title>
   <style type="text/css">
     html, body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0F172A; }
     table { border-collapse: collapse; margin: 0 auto; }
@@ -132,17 +162,20 @@ export async function POST(req: NextRequest) {
       <td align="center" style="padding: 20px 8px;">
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="email-container" style="max-width: 600px; background-color: #FFFFFF; border-radius: 18px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.28); border: 1px solid #1E293B;">
           
-          <!-- Header Banner -->
+          <!-- Header Banner with Logo -->
           <tr>
-            <td style="background: linear-gradient(135deg, #1E1B18 0%, #2A1717 100%); padding: 30px 20px; text-align: center; border-bottom: 3px solid #ED1C24;">
-              <span style="display: inline-block; background: rgba(237, 28, 36, 0.2); color: #F87171; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; padding: 5px 14px; border-radius: 20px; border: 1px solid rgba(237, 28, 36, 0.4); margin-bottom: 12px;">
-                NEW BOOKING ENQUIRY
+            <td style="background: linear-gradient(135deg, #1A0D0D 0%, #2A1214 50%, #15221B 100%); padding: 28px 20px; text-align: center; border-bottom: 3px solid #ED1C24;">
+              <div style="margin-bottom: 12px; text-align: center;">
+                <img src="${logoSrc}" alt="Sangeetha Events Pinner" width="180" style="max-width: 180px; width: 180px; height: auto; display: block; margin: 0 auto;" />
+              </div>
+              <span style="display: inline-block; background: rgba(237, 28, 36, 0.2); color: #F87171; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; padding: 5px 14px; border-radius: 20px; border: 1px solid rgba(237, 28, 36, 0.4); margin-bottom: 8px;">
+                NEW BOOKING ORDER
               </span>
-              <h1 style="color: #FFFFFF; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 0.3px;">
+              <h1 style="color: #FFFFFF; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.3px;">
                 Sangeetha Events Pinner
               </h1>
               <p style="color: #FCA5A5; font-size: 13px; font-weight: 600; margin: 6px 0 0 0;">
-                Authentic South Indian &amp; Vegetarian Catering • Pinner
+                Authentic South Indian &amp; Pure Vegetarian Catering
               </p>
             </td>
           </tr>
@@ -293,11 +326,12 @@ export async function POST(req: NextRequest) {
       from: sender,
       subject: adminSubject,
       html: adminHtml,
+      attachments: emailAttachments,
     };
 
-    // 7. Customer Confirmation Email (if enabled)
+    // 8. Customer Confirmation Email (guaranteed with logo & clean formatting)
     let customerMailOptions: any = null;
-    if (emailConfig.sendCustomerConfirmation && email && email.includes('@')) {
+    if (emailConfig.sendCustomerConfirmation !== false && email && email.includes('@')) {
       const customerSubject = `Thank You for Your Enquiry - Sangeetha Events Pinner`;
       const customerHtml = `
 <!DOCTYPE html>
@@ -313,16 +347,20 @@ export async function POST(req: NextRequest) {
       <td align="center" style="padding: 20px 8px;">
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #FFFFFF; border-radius: 18px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.28); border: 1px solid #1E293B;">
           
+          <!-- Header Banner with Logo -->
           <tr>
-            <td style="background: linear-gradient(135deg, #1E1B18 0%, #2A1717 100%); padding: 30px 20px; text-align: center; border-bottom: 3px solid #ED1C24;">
-              <span style="display: inline-block; background: rgba(237, 28, 36, 0.2); color: #F87171; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; padding: 5px 14px; border-radius: 20px; border: 1px solid rgba(237, 28, 36, 0.4); margin-bottom: 12px;">
-                ✓ ENQUIRY RECEIVED
+            <td style="background: linear-gradient(135deg, #1A0D0D 0%, #2A1214 100%); padding: 28px 20px; text-align: center; border-bottom: 3px solid #ED1C24;">
+              <div style="margin-bottom: 12px; text-align: center;">
+                <img src="${logoSrc}" alt="Sangeetha Events Pinner" width="180" style="max-width: 180px; width: 180px; height: auto; display: block; margin: 0 auto;" />
+              </div>
+              <span style="display: inline-block; background: rgba(237, 28, 36, 0.2); color: #F87171; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; padding: 5px 14px; border-radius: 20px; border: 1px solid rgba(237, 28, 36, 0.4); margin-bottom: 8px;">
+                ✓ ENQUIRY CONFIRMATION
               </span>
               <h1 style="color: #FFFFFF; margin: 0; font-size: 22px; font-weight: 800;">
                 Sangeetha Events Pinner
               </h1>
               <p style="color: #FCA5A5; font-size: 12px; font-weight: 600; margin: 5px 0 0 0;">
-                Authentic South Indian &amp; Vegetarian Catering • Pinner
+                Authentic South Indian &amp; Pure Vegetarian Catering
               </p>
             </td>
           </tr>
@@ -387,9 +425,10 @@ export async function POST(req: NextRequest) {
                 </a>
               </div>
 
-              <div style="border-top: 1px solid #E2E8F0; padding-top: 14px;">
-                <p style="margin: 0; font-size: 13px; font-weight: 800; color: #0F172A;">Sangeetha Events Pinner Team</p>
-                <p style="margin: 2px 0 0 0; font-size: 12px; color: #64748B;">Pinner, London, United Kingdom</p>
+              <!-- Clean Sign-off without company address -->
+              <div style="border-top: 1px solid #E2E8F0; padding-top: 16px; text-align: center;">
+                <p style="margin: 0; font-size: 13px; font-weight: 800; color: #0F172A;">Sangeetha Events Team</p>
+                <p style="margin: 3px 0 0 0; font-size: 12px; color: #64748B;">Authentic South Indian &amp; Pure Vegetarian Catering</p>
               </div>
             </td>
           </tr>
@@ -405,6 +444,7 @@ export async function POST(req: NextRequest) {
         to: email.trim(),
         subject: customerSubject,
         html: customerHtml,
+        attachments: emailAttachments,
       };
     }
 
@@ -444,6 +484,22 @@ export async function POST(req: NextRequest) {
         console.error(`Failed to deliver admin notification to ${activeRecipients[idx]}:`, result.reason);
       }
     });
+
+    if (bookingId && (adminSent || customerSent)) {
+      try {
+        await setDoc(
+          doc(db, 'booking_requests', bookingId),
+          {
+            emailNotificationSent: true,
+            emailSentAt: new Date().toISOString(),
+            notifiedRecipients: activeRecipients,
+          },
+          { merge: true }
+        );
+      } catch (err) {
+        console.warn('Could not mark booking as email-notified in Firestore:', err);
+      }
+    }
 
     return NextResponse.json({
       success: adminSent || customerSent,
